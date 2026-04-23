@@ -17,12 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Polyglot.Application\Polyglot.Application.csproj" />
     <ProjectReference Include="..\Polyglot.Domain\Polyglot.Domain.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="DBConfigurations\" />
   </ItemGroup>
 
 </Project>
