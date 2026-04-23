@@ -1,0 +1,15 @@
+services:
+  dev-db:
+    image: postgres:18.3
+    container_name: polyglot-postgres-dev
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: d4vpas8w0rd13!!!
+      POSTGRES_DB: polyglot-dev
+    ports:
+      - "3135:5432"
+    volumes:
+      - postgres-data-dev:/var/lib/postgresql
+ 
+volumes:
+  postgres-data-dev:
