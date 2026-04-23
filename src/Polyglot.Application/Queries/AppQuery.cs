@@ -1,5 +1,4 @@
 ﻿using Mediator;
-using Microsoft.Extensions.Configuration;
 using Polyglot.Application.Dtos;
 using Polyglot.Application.Models;
 

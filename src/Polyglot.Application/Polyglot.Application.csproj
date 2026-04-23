@@ -10,12 +10,4 @@
     <PackageReference Include="Mediator.Abstractions" Version="3.0.2" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Interfaces\" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\Polyglot.Infrastructure\Polyglot.Infrastructure.csproj" />
-  </ItemGroup>
-
 </Project>
