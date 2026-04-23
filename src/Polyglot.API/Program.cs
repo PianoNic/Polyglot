@@ -1,3 +1,6 @@
+using Microsoft.EntityFrameworkCore;
+using Polyglot.API.Extensions;
+using Polyglot.Infrastructure;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,7 +15,22 @@ builder.Services.AddControllers().AddJsonOptions(options => options.JsonSerializ
 // Mediator & Validation
 builder.Services.AddMediator(options => { options.ServiceLifetime = ServiceLifetime.Scoped; });
 
+// DBContext
+builder.Services.AddDbContext<PolyglotDbContext>(options =>
+    options.UseNpgsql(
+        builder.Configuration.GetConnectionString("PolyglotDatabase"),
+        npgsqlOptions => npgsqlOptions
+        .EnableRetryOnFailure(
+            maxRetryCount: 5,
+            maxRetryDelay: TimeSpan.FromSeconds(10),
+            errorCodesToAdd: null
+        )
+    ));
+
 var app = builder.Build();
+
+// Apply migrations on startup
+app.ApplyMigrations();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
