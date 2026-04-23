@@ -1,12 +1,12 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
-using Polyglot.Application.Interfaces;
 using Polyglot.Domain;
 
 namespace Polyglot.Infrastructure
 {
-    public class PolyglotDbContext(DbContextOptions<PolyglotDbContext> options) : DbContext(options), IPolyglotDbContext
+    public class PolyglotDbContext(DbContextOptions<PolyglotDbContext> options) : DbContext(options)
     {
+        public DbSet<User> Users => Set<User>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

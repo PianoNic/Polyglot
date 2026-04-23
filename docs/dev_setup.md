@@ -1,4 +1,4 @@
-# Polyglot - Dev Setup
+# Polyglot — Dev Setup
 
 ## Prerequisites
 
@@ -6,13 +6,19 @@
 - Docker Desktop
 - `dotnet-ef` global tool: `dotnet tool install --global dotnet-ef`
 
-## Start the database
+## Start the containers
 
 ```bash
 docker compose -f compose.dev.yml up -d
 ```
 
-Postgres runs on port `3135` (mapped from container port `5432`).
+This starts three containers:
+
+- **Postgres** on port `3135` (mapped from container port `5432`)
+- **Pocket ID** (OIDC provider) on port `1411`
+
+Pocket ID needs a one-time setup before the API can authenticate against it —
+see [`dev_pocket_id_setup.md`](./dev_pocket_id_setup.md).
 
 ## Configure secrets
 
@@ -20,12 +26,23 @@ All secrets live in **user secrets**.
 
 Pick one of the two options below.
 
-### Option 1 - CLI
+### Option 1 — CLI
 
 ```bash
 cd src/Polyglot.API
+
 dotnet user-secrets set "ConnectionStrings:PolyglotDatabase" "Host=localhost;Port=3135;Database=polyglot-dev;Username=postgres;Password=d4vpas8w0rd13!!!"
+
+dotnet user-secrets set "Oidc:Authority" "http://localhost:1411"
+dotnet user-secrets set "Oidc:RequireHttpsMetadata" "false"
+dotnet user-secrets set "Oidc:ClientId" "<client-id-from-pocket-id>"
+dotnet user-secrets set "Oidc:RedirectUri" "http://localhost:5173/callback"
+dotnet user-secrets set "Oidc:PostLogoutRedirectUri" "http://localhost:5173"
+dotnet user-secrets set "Oidc:Scope" "openid profile email groups"
 ```
+
+The `Oidc:ClientId` is obtained during the Pocket ID setup — see step 7 of
+[`dev_pocket_id_setup.md`](./dev_pocket_id_setup.md).
 
 To verify:
 
@@ -33,7 +50,7 @@ To verify:
 dotnet user-secrets list
 ```
 
-### Option 2 - Edit `secrets.json` directly
+### Option 2 — Edit `secrets.json` directly
 
 In Visual Studio: right-click the `Polyglot.API` project → **Manage User Secrets**.
 
@@ -43,6 +60,14 @@ Paste in:
 {
   "ConnectionStrings": {
     "PolyglotDatabase": "Host=localhost;Port=3135;Database=polyglot-dev;Username=postgres;Password=d4vpas8w0rd13!!!"
+  },
+  "Oidc": {
+    "Authority": "http://localhost:1411",
+    "RequireHttpsMetadata": false,
+    "ClientId": "<client-id-from-pocket-id>",
+    "RedirectUri": "http://localhost:5173/callback",
+    "PostLogoutRedirectUri": "http://localhost:5173",
+    "Scope": "openid profile email groups"
   }
 }
 ```
@@ -54,7 +79,8 @@ cd src/Polyglot.API
 dotnet run
 ```
 
-Migrations are applied automatically on startup. Swagger is at `/swagger`.
+Migrations are applied automatically on startup.
+OpenAPI / Swagger UI is available at `/swagger`.
 
 ## Migrations
 
