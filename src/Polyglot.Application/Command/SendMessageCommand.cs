@@ -10,13 +10,11 @@ using Microsoft.SemanticKernel.ChatCompletion;
 
 namespace Polyglot.Application.Command
 {
-    public record SendMessageCommand(Guid? ChatId, string Message, string? Model) : ICommand<Result<SendMessageResponse>>;
+    public record SendMessageCommand(Guid? ChatId, string Message, string? Model) : ICommand<Result<SendMessageDto>>;
 
-    public record SendMessageResponse(Guid ChatId, MessageDto UserMessage, MessageDto AssistantMessage);
-
-    public class SendMessageCommandHandler(IUserService userService, IChatRepository chatRepository, IChatCompletionService chatCompletionService) : ICommandHandler<SendMessageCommand, Result<SendMessageResponse>>
+    public class SendMessageCommandHandler(IUserService userService, IChatRepository chatRepository, IChatCompletionService chatCompletionService) : ICommandHandler<SendMessageCommand, Result<SendMessageDto>>
     {
-        public async ValueTask<Result<SendMessageResponse>> Handle(SendMessageCommand command, CancellationToken cancellationToken)
+        public async ValueTask<Result<SendMessageDto>> Handle(SendMessageCommand command, CancellationToken cancellationToken)
         {
             var userId = await userService.GetCurrentUserIdAsync(cancellationToken);
 
@@ -25,7 +23,7 @@ namespace Polyglot.Application.Command
             {
                 var existing = await chatRepository.GetByIdAsync(command.ChatId.Value, userId, cancellationToken);
                 if (existing is null)
-                    return Result<SendMessageResponse>.Failure("Chat not found");
+                    return Result<SendMessageDto>.Failure("Chat not found");
                 chat = existing;
             }
             else
@@ -33,9 +31,7 @@ namespace Polyglot.Application.Command
                 chat = await chatRepository.CreateAsync(userId, "New Chat", cancellationToken);
             }
 
-            var nextSequence = chat.Messages.Count > 0
-                ? chat.Messages.Max(m => m.SequenceNumber) + 1
-                : 0;
+            var nextSequence = chat.Messages.Select(m => m.SequenceNumber).DefaultIfEmpty(-1).Max() + 1;
 
             var userMessage = new Message
             {
@@ -44,6 +40,7 @@ namespace Polyglot.Application.Command
                 Content = command.Message,
                 SequenceNumber = nextSequence
             };
+
             chat.Messages.Add(userMessage);
 
             var history = new ChatHistory();
@@ -63,9 +60,7 @@ namespace Polyglot.Application.Command
                 }
             }
 
-            var settings = command.Model is not null
-                ? new PromptExecutionSettings { ModelId = command.Model }
-                : null;
+            var settings = command.Model is not null ? new PromptExecutionSettings { ModelId = command.Model } : null;
 
             var response = await chatCompletionService.GetChatMessageContentAsync(history, settings, cancellationToken: cancellationToken);
 
@@ -89,8 +84,7 @@ namespace Polyglot.Application.Command
 
             await chatRepository.SaveChangesAsync(cancellationToken);
 
-            return Result<SendMessageResponse>.Success(
-                new SendMessageResponse(chat.Id, userMessage.ToDto(), assistantMessage.ToDto()));
+            return Result<SendMessageDto>.Success(new SendMessageDto(chat.Id, userMessage.ToDto(), assistantMessage.ToDto()));
         }
     }
 }

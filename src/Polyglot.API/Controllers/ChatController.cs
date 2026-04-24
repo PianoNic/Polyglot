@@ -34,7 +34,7 @@ namespace Polyglot.API.Controllers
         }
 
         [HttpPost]
-        [ProducesResponseType(typeof(SendMessageResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(SendMessageDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> SendMessage([FromBody] SendMessageCommand command, CancellationToken cancellationToken)
         {
