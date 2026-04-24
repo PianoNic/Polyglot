@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Polyglot.Infrastructure;
@@ -11,9 +12,11 @@ using Polyglot.Infrastructure;
 namespace Polyglot.Infrastructure.Migrations
 {
     [DbContext(typeof(PolyglotDbContext))]
-    partial class PolyglotDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260424130327_AddedChatAndMessages")]
+    partial class AddedChatAndMessages
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

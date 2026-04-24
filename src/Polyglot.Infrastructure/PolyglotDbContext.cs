@@ -7,6 +7,8 @@ namespace Polyglot.Infrastructure
     public class PolyglotDbContext(DbContextOptions<PolyglotDbContext> options) : DbContext(options)
     {
         public DbSet<User> Users => Set<User>();
+        public DbSet<Chat> Chats => Set<Chat>();
+        public DbSet<Message> Messages => Set<Message>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
