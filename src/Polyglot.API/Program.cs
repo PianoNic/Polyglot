@@ -1,16 +1,56 @@
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi;
 using Polyglot.API.Extensions;
 using Polyglot.Infrastructure;
+using Polyglot.Infrastructure.Extensions;
+using Polyglot.Infrastructure.Repositories;
+using Polyglot.Infrastructure.Services;
 using System.Text.Json.Serialization;
+using Polyglot.Application.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-builder.Services.AddControllers();
+builder.WebHost.ConfigureKestrel(options => options.AddServerHeader = false);
 
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
-builder.Services.AddControllers().AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+// Controllers + JSON
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+
+// Swagger / OpenAPI
+builder.Services.AddSwaggerGen(options =>
+{
+    var authority = builder.Configuration["Oidc:Authority"]
+        ?? throw new InvalidOperationException("Oidc:Authority not configured");
+
+    options.AddSecurityDefinition("OAuth2", new OpenApiSecurityScheme
+    {
+        Type = SecuritySchemeType.OAuth2,
+        Flows = new OpenApiOAuthFlows
+        {
+            AuthorizationCode = new OpenApiOAuthFlow
+            {
+                AuthorizationUrl = new Uri($"{authority}/authorize"),
+                TokenUrl = new Uri($"{authority}/api/oidc/token"),
+                Scopes = new Dictionary<string, string>
+                {
+                    ["openid"] = "OpenID Connect",
+                    ["profile"] = "User profile",
+                    ["email"] = "User email",
+                    ["groups"] = "User groups (roles)",
+                    ["picture"] = "Profile Picture",
+                }
+            }
+        }
+    });
+
+    options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+    {
+        [new OpenApiSecuritySchemeReference("OAuth2", document)] = new List<string>()
+    });
+});
 
 // Mediator & Validation
 builder.Services.AddMediator(options => { options.ServiceLifetime = ServiceLifetime.Scoped; });
@@ -20,12 +60,37 @@ builder.Services.AddDbContext<PolyglotDbContext>(options =>
     options.UseNpgsql(
         builder.Configuration.GetConnectionString("PolyglotDatabase"),
         npgsqlOptions => npgsqlOptions
-        .EnableRetryOnFailure(
-            maxRetryCount: 5,
-            maxRetryDelay: TimeSpan.FromSeconds(10),
-            errorCodesToAdd: null
-        )
+            .EnableRetryOnFailure(
+                maxRetryCount: 5,
+                maxRetryDelay: TimeSpan.FromSeconds(10),
+                errorCodesToAdd: null
+            )
     ));
+
+builder.Services.AddHttpClient();
+builder.Services.AddSemanticKernel(builder.Configuration);
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IOidcService, OidcService>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IChatRepository, ChatRepository>();
+
+// Authentication
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.Authority = builder.Configuration["Oidc:Authority"];
+        options.RequireHttpsMetadata = builder.Configuration.GetValue("Oidc:RequireHttpsMetadata", true);
+        options.TokenValidationParameters.NameClaimType = "name";
+        options.TokenValidationParameters.RoleClaimType = "groups";
+        options.TokenValidationParameters.ValidateAudience = false;
+    })
+    .AddUserSync();
+
+// Authorization
+builder.Services.AddAuthorization(options =>
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build());
 
 var app = builder.Build();
 
@@ -35,17 +100,21 @@ app.ApplyMigrations();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.UseSwagger();
     app.UseSwaggerUI(options =>
     {
-        options.SwaggerEndpoint("/openapi/v1.json", "v1");
+        options.OAuthClientId(builder.Configuration["Oidc:ClientId"]);
+        options.OAuthUsePkce();
+        options.OAuthScopes("openid", "profile", "email", "groups", "picture");
+
+        options.UseRequestInterceptor(
+            "(req) => { if (req.url.includes('/oidc/token')) { delete req.headers['X-Requested-With']; } return req; }"
+        );
     });
 }
 
-app.UseHttpsRedirection();
-
+app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
 
 app.Run();
