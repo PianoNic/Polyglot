@@ -12,6 +12,18 @@ namespace Polyglot.Infrastructure.Services
             return await dbContext.Users.AnyAsync(u => u.ExternalId == externalId, cancellationToken);
         }
 
+        public async Task<Guid> GetCurrentUserIdAsync(CancellationToken cancellationToken = default)
+        {
+            var oidcUser = await oidcService.GetCurrentUserAsync(cancellationToken)
+                ?? throw new UnauthorizedAccessException("No authenticated user");
+
+            var user = await dbContext.Users
+                .FirstOrDefaultAsync(u => u.ExternalId == oidcUser.ExternalId, cancellationToken)
+                ?? throw new UnauthorizedAccessException("User not found");
+
+            return user.Id;
+        }
+
         public async Task SyncCurrentUserAsync(CancellationToken cancellationToken = default)
         {
             var oidcUser = await oidcService.GetCurrentUserAsync(cancellationToken)
