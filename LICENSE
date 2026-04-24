@@ -1,0 +1,43 @@
+Polyglot — Proprietary License
+
+Copyright (c) 2026 Niclas Erismann (PianoNic). All rights reserved.
+
+1. Ownership
+   This software, including all source code, documentation, assets,
+   designs, configurations, and associated materials (collectively, the
+   "Software"), is the sole and exclusive property of Niclas Erismann
+   ("Owner"), regardless of contributions made by other individuals.
+
+2. Contributor Grant
+   By submitting code, documentation, or any other material to this
+   project, contributors irrevocably assign all intellectual property
+   rights in their contributions to the Owner. Contributors retain no
+   ownership, licensing, or distribution rights over their contributions
+   or the Software as a whole.
+
+3. Restrictions
+   Unless the Owner grants explicit prior written permission, no person
+   or entity may:
+   a. Copy, modify, merge, or create derivative works of the Software;
+   b. Distribute, sublicense, sell, lease, or otherwise transfer the
+      Software or any portion thereof;
+   c. Host, deploy, or operate the Software for any purpose, whether
+      commercial or non-commercial;
+   d. Reverse-engineer, decompile, or disassemble the Software.
+
+4. No Implied Rights
+   Nothing in this license grants any right, title, or interest in the
+   Software to any party other than the Owner. Viewing the source code
+   in a public repository does not constitute a license to use, copy, or
+   distribute the Software.
+
+5. Disclaimer
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+   EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND
+   NONINFRINGEMENT. IN NO EVENT SHALL THE OWNER BE LIABLE FOR ANY CLAIM,
+   DAMAGES, OR OTHER LIABILITY ARISING FROM THE USE OF THE SOFTWARE.
+
+6. Governing Law
+   This license shall be governed by and construed in accordance with the
+   laws of Switzerland.
