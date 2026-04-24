@@ -39,7 +39,12 @@ dotnet user-secrets set "Oidc:ClientId" "<client-id-from-pocket-id>"
 dotnet user-secrets set "Oidc:RedirectUri" "http://localhost:5173/callback"
 dotnet user-secrets set "Oidc:PostLogoutRedirectUri" "http://localhost:5173"
 dotnet user-secrets set "Oidc:Scope" "openid profile email groups"
+
+dotnet user-secrets set "OpenRouter:ApiKey" "<your-openrouter-api-key>"
+dotnet user-secrets set "OpenRouter:DefaultModel" "openai/gpt-5"
 ```
+
+The `OpenRouter:ApiKey` is obtained from [openrouter.ai/keys](https://openrouter.ai/keys).
 
 The `Oidc:ClientId` is obtained during the Pocket ID setup — see step 7 of
 [`dev_pocket_id_setup.md`](./dev_pocket_id_setup.md).
@@ -68,6 +73,10 @@ Paste in:
     "RedirectUri": "http://localhost:5173/callback",
     "PostLogoutRedirectUri": "http://localhost:5173",
     "Scope": "openid profile email groups picture"
+  },
+  "OpenRouter": {
+    "ApiKey": "<your-openrouter-api-key>",
+    "DefaultModel": "openai/gpt-5"
   }
 }
 ```

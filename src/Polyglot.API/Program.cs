@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
 using Polyglot.API.Extensions;
 using Polyglot.Infrastructure;
+using Polyglot.Infrastructure.Extensions;
 using Polyglot.Infrastructure.Services;
 using System.Text.Json.Serialization;
 using Polyglot.Application.Interfaces;
@@ -64,6 +65,7 @@ builder.Services.AddDbContext<PolyglotDbContext>(options =>
     ));
 
 builder.Services.AddHttpClient();
+builder.Services.AddSemanticKernel(builder.Configuration);
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IOidcService, OidcService>();
 builder.Services.AddScoped<IUserService, UserService>();
