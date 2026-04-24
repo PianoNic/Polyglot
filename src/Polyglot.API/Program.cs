@@ -12,6 +12,8 @@ using Polyglot.Application.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.WebHost.ConfigureKestrel(options => options.AddServerHeader = false);
+
 // Controllers + JSON
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
