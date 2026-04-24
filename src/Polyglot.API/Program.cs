@@ -4,7 +4,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
 using Polyglot.API.Extensions;
 using Polyglot.Infrastructure;
+using Polyglot.Infrastructure.Services;
 using System.Text.Json.Serialization;
+using Polyglot.Application.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,7 +35,8 @@ builder.Services.AddSwaggerGen(options =>
                     ["openid"] = "OpenID Connect",
                     ["profile"] = "User profile",
                     ["email"] = "User email",
-                    ["groups"] = "User groups (roles)"
+                    ["groups"] = "User groups (roles)",
+                    ["picture"] = "Profile Picture",
                 }
             }
         }
@@ -60,6 +63,11 @@ builder.Services.AddDbContext<PolyglotDbContext>(options =>
             )
     ));
 
+builder.Services.AddHttpClient();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IOidcService, OidcService>();
+builder.Services.AddScoped<IUserService, UserService>();
+
 // Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -69,7 +77,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         options.TokenValidationParameters.NameClaimType = "name";
         options.TokenValidationParameters.RoleClaimType = "groups";
         options.TokenValidationParameters.ValidateAudience = false;
-    });
+    })
+    .AddUserSync();
 
 // Authorization
 builder.Services.AddAuthorization(options =>
@@ -90,7 +99,7 @@ if (app.Environment.IsDevelopment())
     {
         options.OAuthClientId(builder.Configuration["Oidc:ClientId"]);
         options.OAuthUsePkce();
-        options.OAuthScopes("openid", "profile", "email", "groups");
+        options.OAuthScopes("openid", "profile", "email", "groups", "picture");
 
         options.UseRequestInterceptor(
             "(req) => { if (req.url.includes('/oidc/token')) { delete req.headers['X-Requested-With']; } return req; }"

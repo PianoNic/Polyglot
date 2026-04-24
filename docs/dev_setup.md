@@ -67,7 +67,7 @@ Paste in:
     "ClientId": "<client-id-from-pocket-id>",
     "RedirectUri": "http://localhost:5173/callback",
     "PostLogoutRedirectUri": "http://localhost:5173",
-    "Scope": "openid profile email groups"
+    "Scope": "openid profile email groups picture"
   }
 }
 ```

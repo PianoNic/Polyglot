@@ -12,7 +12,7 @@ namespace Polyglot.API.Controllers
     public class AppController(IMediator mediator) : ControllerBase
     {
         [AllowAnonymous]
-        [HttpGet("", Name = "AppSettings")]
+        [HttpGet]
         [ProducesResponseType(typeof(AppDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Get(CancellationToken cancellationToken)
@@ -22,6 +22,14 @@ namespace Polyglot.API.Controllers
                 return Ok(result.Value);
 
             return BadRequest(result.Error);
+        }
+
+        [HttpGet("Test", Name = "TestEndpointWithAuth")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> Test(CancellationToken cancellationToken)
+        {
+            return Ok();
         }
     }
 }
