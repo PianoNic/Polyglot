@@ -73,6 +73,9 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IOidcService, OidcService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IChatRepository, ChatRepository>();
+builder.Services.AddScoped<IModelListRepository, ModelListRepository>();
+builder.Services.AddScoped<IAdminSettingsRepository, AdminSettingsRepository>();
+builder.Services.AddScoped<IOpenRouterClient, OpenRouterClient>();
 
 // Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

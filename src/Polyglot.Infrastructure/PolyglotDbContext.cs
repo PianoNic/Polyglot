@@ -9,6 +9,8 @@ namespace Polyglot.Infrastructure
         public DbSet<User> Users => Set<User>();
         public DbSet<Chat> Chats => Set<Chat>();
         public DbSet<Message> Messages => Set<Message>();
+        public DbSet<ModelListEntry> ModelListEntries => Set<ModelListEntry>();
+        public DbSet<AdminSettings> AdminSettings => Set<AdminSettings>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
