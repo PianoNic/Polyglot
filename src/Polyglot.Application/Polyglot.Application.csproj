@@ -8,6 +8,15 @@
 
   <ItemGroup>
     <PackageReference Include="Mediator.Abstractions" Version="3.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.7" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Command\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Polyglot.Domain\Polyglot.Domain.csproj" />
   </ItemGroup>
 
 </Project>
