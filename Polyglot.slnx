@@ -3,4 +3,5 @@
   <Project Path="src/Polyglot.Application/Polyglot.Application.csproj" />
   <Project Path="src/Polyglot.Domain/Polyglot.Domain.csproj" />
   <Project Path="src/Polyglot.Infrastructure/Polyglot.Infrastructure.csproj" />
+  <Project Path="src/Polyglot.Tests/Polyglot.Tests.csproj" Id="136ff46e-66d0-484f-8cef-4ef67c532326" />
 </Solution>

@@ -1,0 +1,27 @@
+using Microsoft.EntityFrameworkCore;
+
+namespace Polyglot.Infrastructure.Services
+{
+    public class CreditsService(PolyglotDbContext dbContext) : ICreditsService
+    {
+        public async Task<long> FromUsdAsync(decimal usd, CancellationToken cancellationToken = default)
+        {
+            var settings = await dbContext.AdminSettings.SingleAsync(cancellationToken);
+            return (long)Math.Ceiling(usd * settings.CreditsPerUsd);
+        }
+
+        public async Task<decimal> ToUsdAsync(long credits, CancellationToken cancellationToken = default)
+        {
+            var settings = await dbContext.AdminSettings.SingleAsync(cancellationToken);
+            return credits / settings.CreditsPerUsd;
+        }
+
+        public async Task<long> CalculateChatCreditsAsync(int promptTokens, int completionTokens, decimal promptPricePerMillion, decimal completionPricePerMillion, CancellationToken cancellationToken = default)
+        {
+            var settings = await dbContext.AdminSettings.SingleAsync(cancellationToken);
+            var multiplier = settings.CostMultiplier == 0 ? 1m : settings.CostMultiplier;
+            var usd = (promptTokens * promptPricePerMillion / 1_000_000m + completionTokens * completionPricePerMillion / 1_000_000m) * multiplier;
+            return (long)Math.Ceiling(usd * settings.CreditsPerUsd);
+        }
+    }
+}
