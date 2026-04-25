@@ -1,15 +1,17 @@
-﻿using Microsoft.EntityFrameworkCore;
 using Polyglot.Infrastructure;
+using Polyglot.Infrastructure.Seeders;
 
 namespace Polyglot.API.Extensions
 {
-    public static class MigrationExtensions
+    public static class SeedExtensions
     {
-        public static WebApplication ApplyMigrations(this WebApplication app)
+        public static async Task<WebApplication> ApplySeedsAsync(this WebApplication app)
         {
             using var scope = app.Services.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<PolyglotDbContext>();
-            db.Database.Migrate();
+
+            await AdminSettingsSeeder.SeedAsync(db);
+
             return app;
         }
     }

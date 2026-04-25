@@ -1,4 +1,4 @@
-namespace Polyglot.Application.Dtos;
+namespace Polyglot.Infrastructure.Dtos;
 
 public record AvailableModelDto(
     string Id,

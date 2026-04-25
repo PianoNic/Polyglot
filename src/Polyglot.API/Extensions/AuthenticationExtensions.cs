@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Polyglot.Application.Interfaces;
+using Polyglot.Infrastructure.Services;
 using System.Security.Claims;
 
 namespace Polyglot.API.Extensions
@@ -26,8 +26,7 @@ namespace Polyglot.API.Extensions
 
                         context.HttpContext.User = context.Principal;
 
-                        var externalId = identity.FindFirst("sub")?.Value
-                            ?? identity.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                        var externalId = identity.FindFirst("sub")?.Value ?? identity.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
                         if (string.IsNullOrEmpty(externalId))
                             return;

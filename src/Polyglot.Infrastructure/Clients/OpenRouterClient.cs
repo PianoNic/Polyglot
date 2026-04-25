@@ -1,8 +1,7 @@
-using Polyglot.Application.Dtos;
-using Polyglot.Application.Interfaces;
+using Polyglot.Infrastructure.Dtos;
 using System.Text.Json;
 
-namespace Polyglot.Infrastructure.Services
+namespace Polyglot.Infrastructure.Clients
 {
     public class OpenRouterClient(IHttpClientFactory httpClientFactory) : IOpenRouterClient
     {

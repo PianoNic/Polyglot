@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Polyglot.Application.Interfaces;
 using Polyglot.Domain;
 using Polyglot.Domain.Enums;
 
@@ -18,7 +17,7 @@ namespace Polyglot.Infrastructure.Services
                 ?? throw new UnauthorizedAccessException("No authenticated user");
 
             var user = await dbContext.Users
-                .FirstOrDefaultAsync(u => u.ExternalId == oidcUser.ExternalId, cancellationToken)
+                .SingleOrDefaultAsync(u => u.ExternalId == oidcUser.ExternalId, cancellationToken)
                 ?? throw new UnauthorizedAccessException("User not found");
 
             return user.Id;
