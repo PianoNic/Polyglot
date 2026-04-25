@@ -16,9 +16,6 @@ namespace Polyglot.Application.Command
 
     public class SendMessageCommandHandler(IUserService userService, PolyglotDbContext dbContext, IChatCompletionService chatCompletionService, ICreditsService creditsService) : ICommandHandler<SendMessageCommand, Result<SendMessageDto>>
     {
-        private const int MaxOutputTokensEstimate = 4000;
-        private const int CharsPerToken = 4;
-
         public async ValueTask<Result<SendMessageDto>> Handle(SendMessageCommand command, CancellationToken cancellationToken)
         {
             if (string.IsNullOrEmpty(command.Model))
@@ -53,11 +50,9 @@ namespace Polyglot.Application.Command
                 dbContext.Chats.Add(chat);
             }
 
-            var estimatedInputChars = chat.Messages.Sum(m => m.Content.Length) + command.Message.Length;
-            var estimatedInputTokens = estimatedInputChars / CharsPerToken;
-            var worstCaseCredits = await creditsService.CalculateChatCreditsAsync(
-                estimatedInputTokens,
-                MaxOutputTokensEstimate,
+            var inputCharCount = chat.Messages.Sum(m => m.Content.Length) + command.Message.Length;
+            var worstCaseCredits = await creditsService.EstimateChatCreditsAsync(
+                inputCharCount,
                 model.PromptPricePerMillion,
                 model.CompletionPricePerMillion,
                 cancellationToken);
