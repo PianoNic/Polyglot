@@ -4,11 +4,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
 using Polyglot.API.Extensions;
 using Polyglot.Infrastructure;
+using Polyglot.Infrastructure.Clients;
 using Polyglot.Infrastructure.Extensions;
-using Polyglot.Infrastructure.Repositories;
 using Polyglot.Infrastructure.Services;
+using Polyglot.Infrastructure.BackgroundServices;
 using System.Text.Json.Serialization;
-using Polyglot.Application.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -70,9 +70,12 @@ builder.Services.AddDbContext<PolyglotDbContext>(options =>
 builder.Services.AddHttpClient();
 builder.Services.AddSemanticKernel(builder.Configuration);
 builder.Services.AddHttpContextAccessor();
+
+// Services
 builder.Services.AddScoped<IOidcService, OidcService>();
 builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddScoped<IChatRepository, ChatRepository>();
+builder.Services.AddScoped<IOpenRouterClient, OpenRouterClient>();
+builder.Services.AddHostedServices();
 
 // Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -94,8 +97,9 @@ builder.Services.AddAuthorization(options =>
 
 var app = builder.Build();
 
-// Apply migrations on startup
+// DB
 app.ApplyMigrations();
+await app.ApplySeedsAsync();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

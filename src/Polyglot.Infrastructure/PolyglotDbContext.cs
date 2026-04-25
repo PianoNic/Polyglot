@@ -9,19 +9,35 @@ namespace Polyglot.Infrastructure
         public DbSet<User> Users => Set<User>();
         public DbSet<Chat> Chats => Set<Chat>();
         public DbSet<Message> Messages => Set<Message>();
+        public DbSet<ModelListEntry> ModelListEntries => Set<ModelListEntry>();
+        public DbSet<AdminSettings> AdminSettings => Set<AdminSettings>();
+        public DbSet<Model> Models => Set<Model>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(PolyglotDbContext).Assembly);
         }
 
-        public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        public override int SaveChanges(bool acceptAllChangesOnSuccess)
+        {
+            ApplySaveChangesGuards();
+            return base.SaveChanges(acceptAllChangesOnSuccess);
+        }
+
+        public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+        {
+            ApplySaveChangesGuards();
+            return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+        }
+
+        private void ApplySaveChangesGuards()
         {
             foreach (var entry in ChangeTracker.Entries<BaseEntity>())
                 if (entry.State == EntityState.Modified)
                     entry.Entity.UpdatedAt = DateTime.UtcNow;
 
-            return base.SaveChangesAsync(cancellationToken);
+            if (ChangeTracker.Entries<AdminSettings>().Any(e => e.State == EntityState.Deleted))
+                throw new InvalidOperationException("AdminSettings cannot be deleted");
         }
     }
 
