@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Polyglot.Infrastructure;
@@ -12,9 +13,11 @@ using Polyglot.Infrastructure;
 namespace Polyglot.Infrastructure.Migrations
 {
     [DbContext(typeof(PolyglotDbContext))]
-    partial class PolyglotDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260425121951_AddCreditSystem")]
+    partial class AddCreditSystem
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -121,15 +124,14 @@ namespace Polyglot.Infrastructure.Migrations
                         .HasColumnType("integer");
 
                     b.Property<string>("TokenUsage")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                        .HasColumnType("jsonb");
 
                     b.Property<string>("ToolCallId")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
                     b.Property<string>("ToolCalls")
-                        .HasColumnType("text");
+                        .HasColumnType("jsonb");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
