@@ -1,6 +1,6 @@
-using Polyglot.Application.Dtos;
+using Polyglot.Infrastructure.Dtos;
 
-namespace Polyglot.Application.Interfaces
+namespace Polyglot.Infrastructure.Services
 {
     public interface IOidcService
     {

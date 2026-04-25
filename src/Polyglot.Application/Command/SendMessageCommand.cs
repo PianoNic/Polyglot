@@ -1,18 +1,20 @@
 using Mediator;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.ChatCompletion;
 using Polyglot.Application.Dtos;
-using Polyglot.Application.Interfaces;
 using Polyglot.Application.Mappers;
 using Polyglot.Application.Models;
 using Polyglot.Domain;
 using Polyglot.Domain.Enums;
-using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.ChatCompletion;
+using Polyglot.Infrastructure;
+using Polyglot.Infrastructure.Services;
 
 namespace Polyglot.Application.Command
 {
     public record SendMessageCommand(Guid? ChatId, string Message, string? Model) : ICommand<Result<SendMessageDto>>;
 
-    public class SendMessageCommandHandler(IUserService userService, IChatRepository chatRepository, IChatCompletionService chatCompletionService) : ICommandHandler<SendMessageCommand, Result<SendMessageDto>>
+    public class SendMessageCommandHandler(IUserService userService, PolyglotDbContext dbContext, IChatCompletionService chatCompletionService) : ICommandHandler<SendMessageCommand, Result<SendMessageDto>>
     {
         public async ValueTask<Result<SendMessageDto>> Handle(SendMessageCommand command, CancellationToken cancellationToken)
         {
@@ -21,14 +23,23 @@ namespace Polyglot.Application.Command
             Chat chat;
             if (command.ChatId is not null)
             {
-                var existing = await chatRepository.GetByIdAsync(command.ChatId.Value, userId, cancellationToken);
+                var existing = await dbContext.Chats
+                    .Include(c => c.Messages.OrderBy(m => m.SequenceNumber))
+                    .SingleOrDefaultAsync(c => c.Id == command.ChatId.Value && c.UserId == userId, cancellationToken);
                 if (existing is null)
                     return Result<SendMessageDto>.Failure("Chat not found");
                 chat = existing;
             }
             else
             {
-                chat = await chatRepository.CreateAsync(userId, "New Chat", cancellationToken);
+                chat = new Chat
+                {
+                    UserId = userId,
+                    Title = "New Chat",
+                    User = null!,
+                    Messages = []
+                };
+                dbContext.Chats.Add(chat);
             }
 
             var nextSequence = chat.Messages.Select(m => m.SequenceNumber).DefaultIfEmpty(-1).Max() + 1;
@@ -82,7 +93,7 @@ namespace Polyglot.Application.Command
                     : command.Message;
             }
 
-            await chatRepository.SaveChangesAsync(cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken);
 
             return Result<SendMessageDto>.Success(new SendMessageDto(chat.Id, userMessage.ToDto(), assistantMessage.ToDto()));
         }

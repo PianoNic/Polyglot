@@ -1,5 +1,5 @@
 using Mediator;
-using Polyglot.Application.Interfaces;
+using Polyglot.Infrastructure.Services;
 using Polyglot.Application.Models;
 
 namespace Polyglot.Application.Command

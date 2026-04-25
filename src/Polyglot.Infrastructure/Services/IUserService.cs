@@ -1,4 +1,4 @@
-﻿namespace Polyglot.Application.Interfaces
+namespace Polyglot.Infrastructure.Services
 {
     public interface IUserService
     {

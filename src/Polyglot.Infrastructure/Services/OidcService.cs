@@ -1,8 +1,7 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
-using Polyglot.Application.Dtos;
-using Polyglot.Application.Interfaces;
+using Polyglot.Infrastructure.Dtos;
 using System.Net.Http.Headers;
 using System.Security.Claims;
 using System.Text.Json;
