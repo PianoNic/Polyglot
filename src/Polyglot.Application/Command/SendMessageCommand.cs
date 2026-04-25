@@ -14,11 +14,19 @@ namespace Polyglot.Application.Command
 {
     public record SendMessageCommand(Guid? ChatId, string Message, string? Model) : ICommand<Result<SendMessageDto>>;
 
-    public class SendMessageCommandHandler(IUserService userService, PolyglotDbContext dbContext, IChatCompletionService chatCompletionService) : ICommandHandler<SendMessageCommand, Result<SendMessageDto>>
+    public class SendMessageCommandHandler(IUserService userService, PolyglotDbContext dbContext, IChatCompletionService chatCompletionService, ICreditsService creditsService) : ICommandHandler<SendMessageCommand, Result<SendMessageDto>>
     {
         public async ValueTask<Result<SendMessageDto>> Handle(SendMessageCommand command, CancellationToken cancellationToken)
         {
+            if (string.IsNullOrEmpty(command.Model))
+                return Result<SendMessageDto>.Failure("Model is required");
+
             var userId = await userService.GetCurrentUserIdAsync(cancellationToken);
+            var user = await dbContext.Users.SingleAsync(u => u.Id == userId, cancellationToken);
+
+            var model = await dbContext.Models.SingleOrDefaultAsync(m => m.ModelId == command.Model, cancellationToken);
+            if (model is null)
+                return Result<SendMessageDto>.Failure($"Model '{command.Model}' not found");
 
             Chat chat;
             if (command.ChatId is not null)
@@ -42,6 +50,16 @@ namespace Polyglot.Application.Command
                 dbContext.Chats.Add(chat);
             }
 
+            var inputCharCount = chat.Messages.Sum(m => m.Content.Length) + command.Message.Length;
+            var worstCaseCredits = await creditsService.EstimateChatCreditsAsync(
+                inputCharCount,
+                model.PromptPricePerMillion,
+                model.CompletionPricePerMillion,
+                cancellationToken);
+
+            if (user.CreditBalance < worstCaseCredits)
+                return Result<SendMessageDto>.Failure($"Insufficient credits (need ~{worstCaseCredits}, have {user.CreditBalance})");
+
             var nextSequence = chat.Messages.Select(m => m.SequenceNumber).DefaultIfEmpty(-1).Max() + 1;
 
             var userMessage = new Message
@@ -51,7 +69,6 @@ namespace Polyglot.Application.Command
                 Content = command.Message,
                 SequenceNumber = nextSequence
             };
-
             chat.Messages.Add(userMessage);
 
             var history = new ChatHistory();
@@ -71,9 +88,18 @@ namespace Polyglot.Application.Command
                 }
             }
 
-            var settings = command.Model is not null ? new PromptExecutionSettings { ModelId = command.Model } : null;
+            var promptSettings = new PromptExecutionSettings { ModelId = command.Model };
+            var response = await chatCompletionService.GetChatMessageContentAsync(history, promptSettings, cancellationToken: cancellationToken);
 
-            var response = await chatCompletionService.GetChatMessageContentAsync(history, settings, cancellationToken: cancellationToken);
+            var (promptTokens, completionTokens) = ExtractUsage(response);
+            var actualCredits = await creditsService.CalculateChatCreditsAsync(
+                promptTokens,
+                completionTokens,
+                model.PromptPricePerMillion,
+                model.CompletionPricePerMillion,
+                cancellationToken);
+
+            user.CreditBalance -= actualCredits;
 
             var assistantMessage = new Message
             {
@@ -82,6 +108,7 @@ namespace Polyglot.Application.Command
                 Content = response.Content ?? string.Empty,
                 Model = command.Model,
                 FinishReason = response.Metadata?.TryGetValue("FinishReason", out var fr) == true ? fr?.ToString() : null,
+                TokenUsage = $"{promptTokens}/{completionTokens}",
                 SequenceNumber = nextSequence + 1
             };
             chat.Messages.Add(assistantMessage);
@@ -96,6 +123,29 @@ namespace Polyglot.Application.Command
             await dbContext.SaveChangesAsync(cancellationToken);
 
             return Result<SendMessageDto>.Success(new SendMessageDto(chat.Id, userMessage.ToDto(), assistantMessage.ToDto()));
+        }
+
+        private static (int PromptTokens, int CompletionTokens) ExtractUsage(ChatMessageContent response)
+        {
+            if (response.Metadata is null) return (0, 0);
+            if (!response.Metadata.TryGetValue("Usage", out var usageObj) || usageObj is null) return (0, 0);
+
+            var type = usageObj.GetType();
+            var prompt = TryReadInt(usageObj, type, "InputTokenCount") ?? TryReadInt(usageObj, type, "PromptTokens") ?? 0;
+            var completion = TryReadInt(usageObj, type, "OutputTokenCount") ?? TryReadInt(usageObj, type, "CompletionTokens") ?? 0;
+            return (prompt, completion);
+        }
+
+        private static int? TryReadInt(object obj, Type type, string propertyName)
+        {
+            var prop = type.GetProperty(propertyName);
+            if (prop is null) return null;
+            return prop.GetValue(obj) switch
+            {
+                int i => i,
+                long l => (int)l,
+                _ => null
+            };
         }
     }
 }

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Polyglot.Domain;
 using Polyglot.Domain.Enums;
 
+
 namespace Polyglot.Infrastructure.Services
 {
     public class UserService(IOidcService oidcService, PolyglotDbContext dbContext) : IUserService
@@ -37,6 +38,8 @@ namespace Polyglot.Infrastructure.Services
 
             if (user is null)
             {
+                var settings = await dbContext.AdminSettings.SingleAsync(cancellationToken);
+
                 user = new User
                 {
                     ExternalId = oidcUser.ExternalId,
@@ -44,6 +47,7 @@ namespace Polyglot.Infrastructure.Services
                     DisplayName = displayName,
                     AvatarUrl = oidcUser.AvatarUrl,
                     Role = role,
+                    CreditBalance = settings.StartingBalance,
                     Preferences = new UserPreferences()
                 };
 

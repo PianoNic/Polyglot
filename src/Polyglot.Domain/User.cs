@@ -9,6 +9,7 @@ namespace Polyglot.Domain
         public string DisplayName { get; set; } = "Polyglot User";
         public UserRole Role { get; set; } = UserRole.User;
         public string? AvatarUrl { get; set; }
+        public long CreditBalance { get; set; }
         public required UserPreferences Preferences { get; set; } = new UserPreferences();
     }
 }

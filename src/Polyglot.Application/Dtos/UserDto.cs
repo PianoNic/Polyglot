@@ -7,4 +7,5 @@ public record UserDto(
     string Email,
     string DisplayName,
     string? AvatarUrl,
-    UserRole Role);
+    UserRole Role,
+    long CreditBalance);
