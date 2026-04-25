@@ -24,6 +24,9 @@ namespace Polyglot.Application.Command
             var userId = await userService.GetCurrentUserIdAsync(cancellationToken);
             var user = await dbContext.Users.SingleAsync(u => u.Id == userId, cancellationToken);
 
+            if (user.IsLocked)
+                return Result<SendMessageDto>.Failure("Your account has been locked. Please contact an administrator.");
+
             var model = await dbContext.Models.SingleOrDefaultAsync(m => m.ModelId == command.Model, cancellationToken);
             if (model is null)
                 return Result<SendMessageDto>.Failure($"Model '{command.Model}' not found");

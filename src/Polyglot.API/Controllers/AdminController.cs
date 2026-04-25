@@ -9,8 +9,50 @@ namespace Polyglot.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    // TODO: Add role-based authorization via custom attribute (see auth issue)
     public class AdminController(IMediator mediator) : ControllerBase
     {
+        [HttpGet("users")]
+        [ProducesResponseType(typeof(List<UserDto>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetAllUsers(CancellationToken cancellationToken)
+        {
+            var result = await mediator.Send(new GetAllUsersQuery(), cancellationToken);
+            if (result.IsSuccess)
+                return Ok(result.Value);
+
+            return BadRequest(result.Error);
+        }
+
+        [HttpPut("users/{id:guid}/lock")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> SetUserLock(Guid id, [FromBody] SetUserLockCommand command, CancellationToken cancellationToken)
+        {
+            if (id != command.UserId)
+                return BadRequest("Route and body user ID mismatch");
+
+            var result = await mediator.Send(command, cancellationToken);
+            if (result.IsSuccess)
+                return NoContent();
+
+            return BadRequest(result.Error);
+        }
+
+        [HttpPut("users/{id:guid}/credits")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> AdjustUserCredits(Guid id, [FromBody] AdjustUserCreditsCommand command, CancellationToken cancellationToken)
+        {
+            if (id != command.UserId)
+                return BadRequest("Route and body user ID mismatch");
+
+            var result = await mediator.Send(command, cancellationToken);
+            if (result.IsSuccess)
+                return NoContent();
+
+            return BadRequest(result.Error);
+        }
+
         [HttpGet("all-models")]
         [ProducesResponseType(typeof(List<AvailableModelDto>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetAllModels(CancellationToken cancellationToken)
