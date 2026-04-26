@@ -13,7 +13,12 @@ namespace Polyglot.Application.Queries
         public async ValueTask<Result<AdminSettingsDto>> Handle(GetAdminSettingsQuery query, CancellationToken cancellationToken)
         {
             var settings = await dbContext.AdminSettings.SingleAsync(cancellationToken);
-            return Result<AdminSettingsDto>.Success(new AdminSettingsDto(settings.MaxPricePerMillionTokens, settings.ActiveModelListMode));
+            return Result<AdminSettingsDto>.Success(new AdminSettingsDto(
+                settings.MaxPricePerMillionTokens,
+                settings.ActiveModelListMode,
+                settings.StartingBalance,
+                settings.CostMultiplier,
+                settings.CreditsPerUsd));
         }
     }
 }

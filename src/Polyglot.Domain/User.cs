@@ -10,6 +10,7 @@ namespace Polyglot.Domain
         public UserRole Role { get; set; } = UserRole.User;
         public string? AvatarUrl { get; set; }
         public long CreditBalance { get; set; }
+        public bool IsLocked { get; set; }
         public required UserPreferences Preferences { get; set; } = new UserPreferences();
     }
 }
