@@ -13,7 +13,7 @@ using Polyglot.Infrastructure;
 namespace Polyglot.Infrastructure.Migrations
 {
     [DbContext(typeof(PolyglotDbContext))]
-    [Migration("20260425172621_AddUserIsLocked")]
+    [Migration("20260426094706_AddUserIsLocked")]
     partial class AddUserIsLocked
     {
         /// <inheritdoc />

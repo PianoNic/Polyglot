@@ -1,21 +1,31 @@
 using Mediator;
 using Microsoft.EntityFrameworkCore;
 using Polyglot.Application.Models;
+using Polyglot.Domain.Enums;
 using Polyglot.Infrastructure;
 
 namespace Polyglot.Application.Command
 {
-    public record AdjustUserCreditsCommand(Guid UserId, long Amount) : ICommand<Result>;
+    public record AdjustUserCreditsCommand(Guid UserId, long Amount, CreditAdjustmentMode Mode) : ICommand<Result>;
 
     public class AdjustUserCreditsCommandHandler(PolyglotDbContext dbContext) : ICommandHandler<AdjustUserCreditsCommand, Result>
     {
         public async ValueTask<Result> Handle(AdjustUserCreditsCommand command, CancellationToken cancellationToken)
         {
+            if (command.Amount < 0)
+                return Result.Failure("Amount must be non-negative; use Mode = Remove to subtract");
+
             var user = await dbContext.Users.SingleOrDefaultAsync(u => u.Id == command.UserId, cancellationToken);
             if (user is null)
                 return Result.Failure("User not found");
 
-            user.CreditBalance += command.Amount;
+            user.CreditBalance = command.Mode switch
+            {
+                CreditAdjustmentMode.Add => user.CreditBalance + command.Amount,
+                CreditAdjustmentMode.Remove => user.CreditBalance - command.Amount,
+                CreditAdjustmentMode.Overwrite => command.Amount,
+                _ => user.CreditBalance
+            };
 
             if (user.CreditBalance < 0)
                 return Result.Failure("Credit balance cannot go below zero");

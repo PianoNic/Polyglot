@@ -26,12 +26,9 @@ namespace Polyglot.API.Controllers
         [HttpPut("users/{id:guid}/lock")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> SetUserLock(Guid id, [FromBody] SetUserLockCommand command, CancellationToken cancellationToken)
+        public async Task<IActionResult> SetUserLock(Guid id, [FromBody] SetUserLockDto body, CancellationToken cancellationToken)
         {
-            if (id != command.UserId)
-                return BadRequest("Route and body user ID mismatch");
-
-            var result = await mediator.Send(command, cancellationToken);
+            var result = await mediator.Send(new SetUserLockCommand(id, body.IsLocked), cancellationToken);
             if (result.IsSuccess)
                 return NoContent();
 
@@ -41,12 +38,9 @@ namespace Polyglot.API.Controllers
         [HttpPut("users/{id:guid}/credits")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> AdjustUserCredits(Guid id, [FromBody] AdjustUserCreditsCommand command, CancellationToken cancellationToken)
+        public async Task<IActionResult> AdjustUserCredits(Guid id, [FromBody] AdjustCreditsDto body, CancellationToken cancellationToken)
         {
-            if (id != command.UserId)
-                return BadRequest("Route and body user ID mismatch");
-
-            var result = await mediator.Send(command, cancellationToken);
+            var result = await mediator.Send(new AdjustUserCreditsCommand(id, body.Amount, body.Mode), cancellationToken);
             if (result.IsSuccess)
                 return NoContent();
 
@@ -110,22 +104,10 @@ namespace Polyglot.API.Controllers
             return BadRequest(result.Error);
         }
 
-        [HttpPut("settings/list-mode")]
+        [HttpPut("settings")]
         [ProducesResponseType(typeof(AdminSettingsDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> UpdateActiveModelListMode([FromBody] UpdateActiveModelListModeCommand command, CancellationToken cancellationToken)
-        {
-            var result = await mediator.Send(command, cancellationToken);
-            if (result.IsSuccess)
-                return Ok(result.Value);
-
-            return BadRequest(result.Error);
-        }
-
-        [HttpPut("settings/price-cap")]
-        [ProducesResponseType(typeof(AdminSettingsDto), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> UpdatePriceCap([FromBody] UpdatePriceCapCommand command, CancellationToken cancellationToken)
+        public async Task<IActionResult> UpdateAdminSettings([FromBody] UpdateAdminSettingsCommand command, CancellationToken cancellationToken)
         {
             var result = await mediator.Send(command, cancellationToken);
             if (result.IsSuccess)
