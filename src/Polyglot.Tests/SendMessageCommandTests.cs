@@ -198,6 +198,22 @@ public class SendMessageCommandTests
     }
 
     [Test]
+    public async Task Handle_LockedUser_Fails()
+    {
+        var db = CreateDb();
+        var user = await SeedUserWithCredits(db, credits: 10_000);
+        user.IsLocked = true;
+        await db.SaveChangesAsync();
+        await SeedModel(db);
+        var handler = CreateHandler(db, user.Id);
+
+        var result = await handler.Handle(new SendMessageCommand(null, "Hello", "gpt-4"), CancellationToken.None);
+
+        await Assert.That(result.IsFailure).IsTrue();
+        await Assert.That(result.Error!).Contains("locked");
+    }
+
+    [Test]
     public async Task Handle_NullModel_Fails()
     {
         var db = CreateDb();
