@@ -1,0 +1,115 @@
+<div hlmSidebarWrapper>
+  <hlm-sidebar variant="inset">
+    <hlm-sidebar-header>
+      <ul hlmSidebarMenu>
+        <li hlmSidebarMenuItem>
+          <a hlmSidebarMenuButton size="lg" routerLink="/">
+            <div class="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary">
+              <img src="icon.svg" alt="Polyglot" class="size-5" />
+            </div>
+            <div class="grid flex-1 text-left text-sm leading-tight">
+              <span class="truncate font-medium">Polyglot</span>
+              <span class="truncate text-xs">Beta</span>
+            </div>
+          </a>
+        </li>
+      </ul>
+    </hlm-sidebar-header>
+
+    <hlm-sidebar-content>
+      <div hlmSidebarGroup>
+        <div hlmSidebarGroupContent>
+          <ul hlmSidebarMenu>
+            @for (item of _items; track item.title) {
+            <li hlmSidebarMenuItem>
+              <a hlmSidebarMenuButton [routerLink]="item.url" routerLinkActive #rla="routerLinkActive"
+                [isActive]="rla.isActive">
+                <ng-icon hlm [name]="item.icon"></ng-icon>
+                <span>{{ item.title }}</span>
+              </a>
+            </li>
+            }
+          </ul>
+        </div>
+      </div>
+    </hlm-sidebar-content>
+
+    <hlm-sidebar-footer>
+      <ul hlmSidebarMenu>
+        <li hlmSidebarMenuItem>
+          <button hlmSidebarMenuButton size="lg" [hlmDropdownMenuTrigger]="userMenu" [side]="_menuSide()" align="end">
+            <hlm-avatar class="rounded-lg">
+              @if (_user.avatar) {
+              <img [src]="_user.avatar" [alt]="_user.name" hlmAvatarImage />
+              }
+              <span class="rounded-lg bg-[#FD005B] text-white" hlmAvatarFallback>
+                {{ _user.name.charAt(0) }}
+              </span>
+            </hlm-avatar>
+            <div class="grid flex-1 text-left text-sm leading-tight">
+              <span class="truncate font-medium">{{ _user.name }}</span>
+              <span class="truncate text-xs">{{ _user.email }}</span>
+            </div>
+            <ng-icon name="lucideChevronsUpDown" class="ml-auto text-base"></ng-icon>
+          </button>
+
+          <ng-template #userMenu>
+            <hlm-dropdown-menu class="min-w-56 rounded-lg">
+              <hlm-dropdown-menu-label>
+                <div class="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+                  <hlm-avatar class="rounded-lg">
+                    @if (_user.avatar) {
+                    <img [src]="_user.avatar" [alt]="_user.name" hlmAvatarImage />
+                    }
+                    <span class="rounded-lg bg-[#FD005B] text-white" hlmAvatarFallback>
+                      {{ _user.name.charAt(0) }}
+                    </span>
+                  </hlm-avatar>
+                  <div class="grid flex-1 text-left text-sm leading-tight">
+                    <span class="truncate font-medium">{{ _user.name }}</span>
+                    <span class="truncate text-xs">{{ _user.email }}</span>
+                  </div>
+                </div>
+              </hlm-dropdown-menu-label>
+
+              <hlm-dropdown-menu-separator />
+
+              <hlm-dropdown-menu-group>
+                <button hlmDropdownMenuItem>
+                  <ng-icon name="lucideSparkles"></ng-icon>
+                  Upgrade to Pro
+                </button>
+              </hlm-dropdown-menu-group>
+
+              <hlm-dropdown-menu-separator />
+
+              <hlm-dropdown-menu-group>
+                <button hlmDropdownMenuItem>
+                  <ng-icon name="lucideBadgeCheck"></ng-icon>
+                  Account
+                </button>
+                <button hlmDropdownMenuItem>
+                  <ng-icon name="lucideCreditCard"></ng-icon>
+                  Billing
+                </button>
+                <button hlmDropdownMenuItem>
+                  <ng-icon name="lucideBell"></ng-icon>
+                  Notifications
+                </button>
+              </hlm-dropdown-menu-group>
+
+              <hlm-dropdown-menu-separator />
+
+              <button hlmDropdownMenuItem>
+                <ng-icon name="lucideLogOut"></ng-icon>
+                Log out
+              </button>
+            </hlm-dropdown-menu>
+          </ng-template>
+        </li>
+      </ul>
+    </hlm-sidebar-footer>
+  </hlm-sidebar>
+
+  <ng-content></ng-content>
+</div>
