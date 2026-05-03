@@ -1,0 +1,11 @@
+export * from './admin.service';
+import { AdminService } from './admin.service';
+export * from './app.service';
+import { AppService } from './app.service';
+export * from './chat.service';
+import { ChatService } from './chat.service';
+export * from './model.service';
+import { ModelService } from './model.service';
+export * from './user.service';
+import { UserService } from './user.service';
+export const APIS = [AdminService, AppService, ChatService, ModelService, UserService];
