@@ -13,6 +13,10 @@ export const routes: Routes = [
         path: 'chat',
         loadComponent: () => import('./chat/chat').then((m) => m.Chat),
       },
+      {
+        path: 'chat/:id',
+        loadComponent: () => import('./chat/chat').then((m) => m.Chat),
+      },
     ],
   },
   { path: '**', redirectTo: 'chat' },

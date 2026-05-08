@@ -12,63 +12,87 @@
           </a>
         </li>
       </ul>
+      <div class="px-2 pt-2">
+        <button
+          hlmBtn
+          variant="outline"
+          size="sm"
+          type="button"
+          (click)="newChat()"
+          class="w-full justify-start gap-2"
+        >
+          <ng-icon hlm size="xs" name="lucideSquarePen" />
+          New chat
+        </button>
+      </div>
     </hlm-sidebar-header>
 
     <hlm-sidebar-content>
-      <div hlmSidebarGroup>
-        <div hlmSidebarGroupContent>
-          <ul hlmSidebarMenu>
-            @for (item of _items; track item.title) {
-            <li hlmSidebarMenuItem>
-              <a hlmSidebarMenuButton [routerLink]="item.url" routerLinkActive #rla="routerLinkActive"
-                [isActive]="rla.isActive">
-                <ng-icon hlm [name]="item.icon"></ng-icon>
-                <span>{{ item.title }}</span>
-              </a>
-            </li>
-            }
-          </ul>
-        </div>
-      </div>
+      <pk-conversation-list
+        [conversations]="store.conversations()"
+        [activeId]="store.activeChatId()"
+        (selected)="openConversation($event)"
+        (renamed)="renameConversation($event)"
+        (deleted)="deleteConversation($event)"
+        class="flex-1"
+      />
     </hlm-sidebar-content>
 
     <hlm-sidebar-footer>
       <ul hlmSidebarMenu>
         <li hlmSidebarMenuItem>
           <button hlmSidebarMenuButton size="lg" [hlmDropdownMenuTrigger]="userMenu" [side]="_menuSide()" align="end">
-            <hlm-avatar class="rounded-lg">
+            <hlm-avatar class="rounded-full">
               @if (_user().avatar) {
               <img [src]="_user().avatar" [alt]="_user().name" hlmAvatarImage />
               }
-              <span class="rounded-lg bg-[#FD005B] text-white" hlmAvatarFallback>
-                {{ _user().name.charAt(0) }}
+              <span class="rounded-full" hlmAvatarFallback>
+                {{ _user().name.charAt(0).toUpperCase() }}
               </span>
             </hlm-avatar>
             <div class="grid flex-1 text-left text-sm leading-tight">
               <span class="truncate font-medium">{{ _user().name }}</span>
-              <span class="truncate text-xs">{{ _user().email }}</span>
+              <span class="truncate text-xs tabular-nums text-muted-foreground">
+                {{ userStore.creditBalance() | number }} credits
+              </span>
             </div>
             <ng-icon name="lucideChevronsUpDown" class="ml-auto text-base"></ng-icon>
           </button>
 
           <ng-template #userMenu>
-            <hlm-dropdown-menu class="min-w-56 rounded-lg">
+            <hlm-dropdown-menu class="min-w-64 rounded-lg">
               <hlm-dropdown-menu-label>
                 <div class="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                  <hlm-avatar class="rounded-lg">
+                  <hlm-avatar class="rounded-full">
                     @if (_user().avatar) {
                     <img [src]="_user().avatar" [alt]="_user().name" hlmAvatarImage />
                     }
-                    <span class="rounded-lg bg-[#FD005B] text-white" hlmAvatarFallback>
+                    <span class="rounded-full bg-[#FD005B] text-white" hlmAvatarFallback>
                       {{ _user().name.charAt(0) }}
                     </span>
                   </hlm-avatar>
-                  <div class="grid flex-1 text-left text-sm leading-tight">
+                  <div class="grid flex-1 text-left leading-tight">
                     <span class="truncate font-medium">{{ _user().name }}</span>
-                    <span class="truncate text-xs">{{ _user().email }}</span>
+                    <span class="truncate text-xs text-muted-foreground">{{ _user().email }}</span>
+                    <span class="mt-0.5 truncate text-xs tabular-nums text-muted-foreground">
+                      {{ userStore.creditBalance() | number }} credits
+                    </span>
                   </div>
                 </div>
               </hlm-dropdown-menu-label>
+
+              <hlm-dropdown-menu-separator />
+
+              <hlm-dropdown-menu-group>
+                <a hlmDropdownMenuItem routerLink="/chat">
+                  <ng-icon name="lucideMessageCircle"></ng-icon>
+                  Chat
+                </a>
+                <a hlmDropdownMenuItem routerLink="/admin">
+                  <ng-icon name="lucideShield"></ng-icon>
+                  Admin
+                </a>
+              </hlm-dropdown-menu-group>
 
               <hlm-dropdown-menu-separator />
 
