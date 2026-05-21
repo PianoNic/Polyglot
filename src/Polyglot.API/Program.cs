@@ -55,7 +55,7 @@ builder.Services.AddDbContext<PolyglotDbContext>(options =>
     ));
 
 builder.Services.AddHttpClient();
-builder.Services.AddSemanticKernel(builder.Configuration);
+builder.Services.AddAgentFramework(builder.Configuration);
 builder.Services.AddHttpContextAccessor();
 
 // CORS
