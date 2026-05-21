@@ -14,10 +14,12 @@ namespace Polyglot.Application.Command
 {
     public record SendMessageCommand(Guid? ChatId, string Message, string? Model) : ICommand<Result<SendMessageDto>>;
 
-    public class SendMessageCommandHandler(IUserService userService, PolyglotDbContext dbContext, IChatCompletionService chatCompletionService, ICreditsService creditsService) : ICommandHandler<SendMessageCommand, Result<SendMessageDto>>
+    public class SendMessageCommandHandler(IUserService userService, PolyglotDbContext dbContext, IChatCompletionServiceFactory chatCompletionFactory, ICreditsService creditsService) : ICommandHandler<SendMessageCommand, Result<SendMessageDto>>
     {
         public async ValueTask<Result<SendMessageDto>> Handle(SendMessageCommand command, CancellationToken cancellationToken)
         {
+            Console.WriteLine($"[SendMessageHandler] Invoked: chatId={command.ChatId}, model={command.Model}, msg={command.Message?[..Math.Min(30, command.Message?.Length ?? 0)]}");
+
             if (string.IsNullOrEmpty(command.Model))
                 return Result<SendMessageDto>.Failure("Model is required");
 
@@ -91,8 +93,8 @@ namespace Polyglot.Application.Command
                 }
             }
 
-            var promptSettings = new PromptExecutionSettings { ModelId = command.Model };
-            var response = await chatCompletionService.GetChatMessageContentAsync(history, promptSettings, cancellationToken: cancellationToken);
+            var chatCompletionService = chatCompletionFactory.Create(command.Model);
+            var response = await chatCompletionService.GetChatMessageContentAsync(history, cancellationToken: cancellationToken);
 
             var (promptTokens, completionTokens) = ExtractUsage(response);
             var actualCredits = await creditsService.CalculateChatCreditsAsync(
@@ -125,13 +127,21 @@ namespace Polyglot.Application.Command
 
             await dbContext.SaveChangesAsync(cancellationToken);
 
-            return Result<SendMessageDto>.Success(new SendMessageDto(chat.Id, userMessage.ToDto(), assistantMessage.ToDto()));
+            return Result<SendMessageDto>.Success(new SendMessageDto
+            {
+                ChatId = chat.Id,
+                ChatTitle = chat.Title,
+                UserMessage = userMessage.ToDto(),
+                AssistantMessage = assistantMessage.ToDto(),
+            });
         }
 
         private static (int PromptTokens, int CompletionTokens) ExtractUsage(ChatMessageContent response)
         {
-            if (response.Metadata is null) return (0, 0);
-            if (!response.Metadata.TryGetValue("Usage", out var usageObj) || usageObj is null) return (0, 0);
+            if (response.Metadata is null)
+                return (0, 0);
+            if (!response.Metadata.TryGetValue("Usage", out var usageObj) || usageObj is null)
+                return (0, 0);
 
             var type = usageObj.GetType();
             var prompt = TryReadInt(usageObj, type, "InputTokenCount") ?? TryReadInt(usageObj, type, "PromptTokens") ?? 0;
@@ -142,7 +152,8 @@ namespace Polyglot.Application.Command
         private static int? TryReadInt(object obj, Type type, string propertyName)
         {
             var prop = type.GetProperty(propertyName);
-            if (prop is null) return null;
+            if (prop is null)
+                return null;
             return prop.GetValue(obj) switch
             {
                 int i => i,

@@ -6,16 +6,16 @@ const STORAGE_KEY = 'polyglot.theme';
 
 @Injectable({ providedIn: 'root' })
 export class ThemeService {
-  private readonly _systemDark = signal(this.readSystem());
+  private readonly systemDark = signal(this.readSystem());
   readonly mode = signal<ThemeMode>(this.readStored());
   readonly resolved = computed(() =>
-    this.mode() === 'system' ? (this._systemDark() ? 'dark' : 'light') : this.mode(),
+    this.mode() === 'system' ? (this.systemDark() ? 'dark' : 'light') : this.mode(),
   );
 
   constructor() {
     window
       .matchMedia('(prefers-color-scheme: dark)')
-      .addEventListener('change', (e) => this._systemDark.set(e.matches));
+      .addEventListener('change', (e) => this.systemDark.set(e.matches));
 
     effect(() => {
       document.documentElement.classList.toggle('dark', this.resolved() === 'dark');

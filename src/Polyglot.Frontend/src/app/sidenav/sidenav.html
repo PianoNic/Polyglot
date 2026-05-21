@@ -11,25 +11,18 @@
             </div>
           </a>
         </li>
+        <li hlmSidebarMenuItem class="mt-4">
+          <button hlmSidebarMenuButton type="button" (click)="newChat()">
+            <ng-icon name="lucideSquarePen" />
+            <span>New chat</span>
+          </button>
+        </li>
       </ul>
-      <div class="px-2 pt-2">
-        <button
-          hlmBtn
-          variant="outline"
-          size="sm"
-          type="button"
-          (click)="newChat()"
-          class="w-full justify-start gap-2"
-        >
-          <ng-icon hlm size="xs" name="lucideSquarePen" />
-          New chat
-        </button>
-      </div>
     </hlm-sidebar-header>
 
     <hlm-sidebar-content>
       <pk-conversation-list
-        [conversations]="store.conversations()"
+        [conversations]="store.chats()"
         [activeId]="store.activeChatId()"
         (selected)="openConversation($event)"
         (renamed)="renameConversation($event)"
@@ -41,55 +34,35 @@
     <hlm-sidebar-footer>
       <ul hlmSidebarMenu>
         <li hlmSidebarMenuItem>
-          <button hlmSidebarMenuButton size="lg" [hlmDropdownMenuTrigger]="userMenu" [side]="_menuSide()" align="end">
+          <button hlmSidebarMenuButton size="lg" [hlmDropdownMenuTrigger]="userMenu" [side]="menuSide()" align="end">
             <hlm-avatar class="rounded-full">
-              @if (_user().avatar) {
-              <img [src]="_user().avatar" [alt]="_user().name" hlmAvatarImage />
+              @if (user().avatar) {
+                <img [src]="user().avatar" [alt]="user().name" hlmAvatarImage />
               }
-              <span class="rounded-full" hlmAvatarFallback>
-                {{ _user().name.charAt(0).toUpperCase() }}
-              </span>
+              <span hlmAvatarFallback>{{ user().name.charAt(0).toUpperCase() }}</span>
             </hlm-avatar>
             <div class="grid flex-1 text-left text-sm leading-tight">
-              <span class="truncate font-medium">{{ _user().name }}</span>
-              <span class="truncate text-xs tabular-nums text-muted-foreground">
+              <span class="truncate font-medium">{{ user().name }}</span>
+              <span class="truncate text-xs tabular-nums">
                 {{ userStore.creditBalance() | number }} credits
               </span>
             </div>
-            <ng-icon name="lucideChevronsUpDown" class="ml-auto text-base"></ng-icon>
+            <ng-icon name="lucideChevronsUpDown" class="ml-auto" />
           </button>
 
           <ng-template #userMenu>
-            <hlm-dropdown-menu class="min-w-64 rounded-lg">
-              <hlm-dropdown-menu-label>
-                <div class="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                  <hlm-avatar class="rounded-full">
-                    @if (_user().avatar) {
-                    <img [src]="_user().avatar" [alt]="_user().name" hlmAvatarImage />
-                    }
-                    <span class="rounded-full bg-[#FD005B] text-white" hlmAvatarFallback>
-                      {{ _user().name.charAt(0) }}
-                    </span>
-                  </hlm-avatar>
-                  <div class="grid flex-1 text-left leading-tight">
-                    <span class="truncate font-medium">{{ _user().name }}</span>
-                    <span class="truncate text-xs text-muted-foreground">{{ _user().email }}</span>
-                    <span class="mt-0.5 truncate text-xs tabular-nums text-muted-foreground">
-                      {{ userStore.creditBalance() | number }} credits
-                    </span>
-                  </div>
-                </div>
-              </hlm-dropdown-menu-label>
+            <hlm-dropdown-menu class="min-w-64">
+              <hlm-dropdown-menu-label>{{ user().email }}</hlm-dropdown-menu-label>
 
               <hlm-dropdown-menu-separator />
 
               <hlm-dropdown-menu-group>
                 <a hlmDropdownMenuItem routerLink="/chat">
-                  <ng-icon name="lucideMessageCircle"></ng-icon>
+                  <ng-icon name="lucideMessageCircle" />
                   Chat
                 </a>
                 <a hlmDropdownMenuItem routerLink="/admin">
-                  <ng-icon name="lucideShield"></ng-icon>
+                  <ng-icon name="lucideShield" />
                   Admin
                 </a>
               </hlm-dropdown-menu-group>
@@ -98,46 +71,29 @@
 
               <hlm-dropdown-menu-group>
                 <button hlmDropdownMenuItem>
-                  <ng-icon name="lucideSparkles"></ng-icon>
-                  Upgrade to Pro
+                  <ng-icon name="lucideCoins" />
+                  Buy tokens
                 </button>
               </hlm-dropdown-menu-group>
 
               <hlm-dropdown-menu-separator />
 
               <hlm-dropdown-menu-group>
-                <button hlmDropdownMenuItem>
-                  <ng-icon name="lucideBadgeCheck"></ng-icon>
-                  Account
-                </button>
-                <button hlmDropdownMenuItem>
-                  <ng-icon name="lucideCreditCard"></ng-icon>
-                  Billing
-                </button>
-                <button hlmDropdownMenuItem>
-                  <ng-icon name="lucideBell"></ng-icon>
-                  Notifications
-                </button>
-              </hlm-dropdown-menu-group>
-
-              <hlm-dropdown-menu-separator />
-
-              <hlm-dropdown-menu-group>
-                @for (option of _themeOptions; track option.mode) {
-                <button hlmDropdownMenuItem (click)="setTheme(option.mode)">
-                  <ng-icon [name]="option.icon"></ng-icon>
-                  {{ option.label }}
-                  @if (themeMode() === option.mode) {
-                  <span class="ml-auto text-xs text-muted-foreground">✓</span>
-                  }
-                </button>
+                @for (option of themeOptions; track option.mode) {
+                  <button hlmDropdownMenuItem (click)="setTheme(option.mode)">
+                    <ng-icon [name]="option.icon" />
+                    {{ option.label }}
+                    @if (themeMode() === option.mode) {
+                      <span class="ml-auto text-xs text-muted-foreground">✓</span>
+                    }
+                  </button>
                 }
               </hlm-dropdown-menu-group>
 
               <hlm-dropdown-menu-separator />
 
               <button hlmDropdownMenuItem (click)="logout()">
-                <ng-icon name="lucideLogOut"></ng-icon>
+                <ng-icon name="lucideLogOut" />
                 Log out
               </button>
             </hlm-dropdown-menu>

@@ -1,6 +1,6 @@
 import { StsConfigHttpLoader, StsConfigLoader } from 'angular-auth-oidc-client';
 import { map } from 'rxjs/operators';
-import { AppService } from '../api/api/app.service';
+import { AppService } from '../../api/api/app.service';
 import { environment } from '../environments/environment';
 
 export const authLoaderFactory = (appService: AppService) => {

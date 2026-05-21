@@ -315,10 +315,13 @@ public class SendMessageCommandTests
         var userService = Substitute.For<IUserService>();
         userService.GetCurrentUserIdAsync(Arg.Any<CancellationToken>()).Returns(userId);
 
+        var factory = Substitute.For<IChatCompletionServiceFactory>();
+        factory.Create(Arg.Any<string>()).Returns(chatService ?? Substitute.For<IChatCompletionService>());
+
         return new SendMessageCommandHandler(
             userService,
             db,
-            chatService ?? Substitute.For<IChatCompletionService>(),
+            factory,
             creditsService ?? Substitute.For<ICreditsService>());
     }
 }
