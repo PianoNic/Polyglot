@@ -43,7 +43,6 @@
     "@spartan-ng/cli": "^0.0.1-alpha.683",
     "@tailwindcss/postcss": "^4.1.12",
     "jsdom": "^28.0.0",
-    "ngx-prompt-kit": "^21.2.0",
     "postcss": "^8.5.3",
     "prettier": "^3.8.1",
     "tailwindcss": "^4.1.12",
