@@ -19,6 +19,10 @@ builder.Services.AddControllers()
     .AddJsonOptions(options =>
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
+// IResult-based responses (e.g. the SSE chat stream) serialize via Http.Json options, not MVC's
+builder.Services.ConfigureHttpJsonOptions(options =>
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+
 // Swagger / OpenAPI
 builder.Services.AddSwaggerGen(options =>
 {
@@ -73,6 +77,7 @@ builder.Services.AddScoped<IOidcService, OidcService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IOpenRouterClient, OpenRouterClient>();
 builder.Services.AddScoped<ICreditsService, CreditsService>();
+builder.Services.AddSingleton<IChatTitleGenerator, ChatTitleGenerator>();
 builder.Services.AddHostedServices();
 
 // Authentication
