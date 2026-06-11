@@ -15,6 +15,7 @@ import {
   lucideMoon,
   lucideMonitor,
   lucideSquarePen,
+  lucidePlug,
 } from '@ng-icons/lucide';
 import { ThemeService, ThemeMode } from '../shared/services/theme.service';
 import { HlmSidebarImports, HlmSidebarService } from '@spartan-ng/helm/sidebar';
@@ -52,6 +53,7 @@ import type { ConversationRename } from '../../../libs/prompt-kit/conversation-l
       lucideMoon,
       lucideMonitor,
       lucideSquarePen,
+      lucidePlug,
     }),
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,

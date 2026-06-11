@@ -12,6 +12,7 @@ export const routes: Routes = [
     children: [
       { path: 'chat', component: Chat },
       { path: 'chat/:id', component: Chat },
+      { path: 'mcp', loadComponent: () => import('./mcp/mcp').then((m) => m.Mcp) },
       { path: 'admin', loadComponent: () => import('./admin/admin').then((m) => m.Admin) },
     ],
   },

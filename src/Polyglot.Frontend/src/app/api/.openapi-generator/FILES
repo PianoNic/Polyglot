@@ -7,6 +7,7 @@ api/api.ts
 api/app.service.ts
 api/attachment.service.ts
 api/chat.service.ts
+api/mcp.service.ts
 api/model.service.ts
 api/user.service.ts
 configuration.ts
@@ -23,7 +24,10 @@ model/chatDetailDto.ts
 model/chatDto.ts
 model/chatStreamPayload.ts
 model/chatStreamPayloadType.ts
+model/createMcpServerCommand.ts
 model/creditAdjustmentMode.ts
+model/mcpServerDto.ts
+model/mcpTransportMode.ts
 model/messageDto.ts
 model/messageRole.ts
 model/modelListEntryDto.ts
@@ -36,6 +40,7 @@ model/sendMessageCommand.ts
 model/sendMessageDto.ts
 model/setUserLockDto.ts
 model/updateAdminSettingsCommand.ts
+model/updateMcpServerCommand.ts
 model/userDto.ts
 model/userRole.ts
 param.ts

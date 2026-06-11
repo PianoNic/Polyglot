@@ -695,12 +695,16 @@ public class SendMessageCommandTests
         var userService = Substitute.For<IUserService>();
         userService.GetCurrentUserIdAsync(Arg.Any<CancellationToken>()).Returns(userId);
 
+        var mcpToolProvider = Substitute.For<IMcpToolProvider>();
+        mcpToolProvider.GetToolsForUserAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns(McpToolset.Empty);
+
         return new SendMessageCommandHandler(
             userService,
             db,
             chatClientFactory ?? FakeStreamingClient("ok"),
             creditsService ?? Substitute.For<ICreditsService>(),
             Substitute.For<IChatTitleGenerator>(),
-            new JsExecutionService());
+            new JsExecutionService(),
+            mcpToolProvider);
     }
 }

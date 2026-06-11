@@ -24,7 +24,7 @@ namespace Polyglot.Application.Command
     public sealed record ChatStreamDone(SendMessageDto Result) : ChatStreamEvent;
     public sealed record ChatStreamError(string Message) : ChatStreamEvent;
 
-    public class SendMessageCommandHandler(IUserService userService, PolyglotDbContext dbContext, IChatClientFactory chatClientFactory, ICreditsService creditsService, IChatTitleGenerator titleGenerator, IJsExecutionService jsExecutionService) : IStreamCommandHandler<SendMessageCommand, ChatStreamEvent>
+    public class SendMessageCommandHandler(IUserService userService, PolyglotDbContext dbContext, IChatClientFactory chatClientFactory, ICreditsService creditsService, IChatTitleGenerator titleGenerator, IJsExecutionService jsExecutionService, IMcpToolProvider mcpToolProvider) : IStreamCommandHandler<SendMessageCommand, ChatStreamEvent>
     {
         // Tool steps are serialized for human display in the chat UI, so keep
         // characters like '+' readable instead of \u-escaped.
@@ -55,85 +55,105 @@ namespace Polyglot.Application.Command
             var pendingToolCalls = new Dictionary<string, ToolStep>();
 
             // Tool gating: only models that advertise tool support get tools attached.
+            // MCP tools (the user's own + shared servers) are added alongside the built-in
+            // JavaScript tool; the toolset owns live connections, so it is disposed below.
             ChatOptions? chatOptions = null;
+            var mcpToolset = McpToolset.Empty;
             if (ctx.Model.SupportedParameters.Contains("tools"))
-                chatOptions = new ChatOptions { Tools = [CreateJsExecutionTool()] };
-
-            var stream = chatClient.GetStreamingResponseAsync(ctx.Messages, chatOptions, cancellationToken);
-            await using var updates = stream.GetAsyncEnumerator(cancellationToken);
-            while (true)
             {
-                ChatResponseUpdate? update = null;
-                try
-                {
-                    if (await updates.MoveNextAsync())
-                        update = updates.Current;
-                }
-                catch (OperationCanceledException)
-                {
-                    throw;
-                }
-                catch (Exception ex)
-                {
-                    streamError = $"The model provider returned an error: {ex.Message}";
-                }
-                if (update is null)
-                    break;
+                mcpToolset = await mcpToolProvider.GetToolsForUserAsync(ctx.User.Id, cancellationToken);
 
-                if (update.FinishReason is { } fr)
-                    finishReason = fr;
+                var tools = new List<AITool> { CreateJsExecutionTool() };
+                var seenNames = new HashSet<string>(StringComparer.Ordinal) { "execute_javascript" };
+                foreach (var mcpTool in mcpToolset.Tools)
+                    if (seenNames.Add(mcpTool.Name))
+                        tools.Add(mcpTool);
 
-                foreach (var content in update.Contents)
+                chatOptions = new ChatOptions { Tools = tools };
+            }
+
+            try
+            {
+                var stream = chatClient.GetStreamingResponseAsync(ctx.Messages, chatOptions, cancellationToken);
+                await using var updates = stream.GetAsyncEnumerator(cancellationToken);
+                while (true)
                 {
-                    switch (content)
+                    ChatResponseUpdate? update = null;
+                    try
                     {
-                        case TextContent { Text: { Length: > 0 } text }:
-                            assistantContent.Append(text);
-                            yield return new ChatStreamChunk(text);
-                            break;
-                        case FunctionCallContent fcc:
+                        if (await updates.MoveNextAsync())
+                            update = updates.Current;
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        throw;
+                    }
+                    catch (Exception ex)
+                    {
+                        streamError = $"The model provider returned an error: {ex.Message}";
+                    }
+                    if (update is null)
+                        break;
+
+                    if (update.FinishReason is { } fr)
+                        finishReason = fr;
+
+                    foreach (var content in update.Contents)
+                    {
+                        switch (content)
                         {
-                            var input = fcc.Arguments is null ? string.Empty : JsonSerializer.Serialize(fcc.Arguments, ToolStepJsonOptions);
-                            var step = new ToolStep(fcc.Name, input);
-                            toolSteps.Add(step);
-                            pendingToolCalls[fcc.CallId] = step;
-                            yield return new ChatStreamToolCall(fcc.Name, input);
-                            break;
+                            case TextContent { Text: { Length: > 0 } text }:
+                                assistantContent.Append(text);
+                                yield return new ChatStreamChunk(text);
+                                break;
+                            case FunctionCallContent fcc:
+                                {
+                                    var input = fcc.Arguments is null ? string.Empty : JsonSerializer.Serialize(fcc.Arguments, ToolStepJsonOptions);
+                                    var step = new ToolStep(fcc.Name, input);
+                                    toolSteps.Add(step);
+                                    pendingToolCalls[fcc.CallId] = step;
+                                    yield return new ChatStreamToolCall(fcc.Name, input);
+                                    break;
+                                }
+                            case FunctionResultContent frc:
+                                {
+                                    var step = pendingToolCalls.GetValueOrDefault(frc.CallId);
+                                    var output = frc.Result?.ToString() ?? string.Empty;
+                                    if (step is not null)
+                                        step.Output = output;
+                                    yield return new ChatStreamToolResult(step?.Name ?? "tool", output);
+                                    break;
+                                }
+                            case UsageContent uc:
+                                // Tool calls produce one completion per loop turn; bill them all.
+                                if (usage is null)
+                                {
+                                    usage = uc.Details;
+                                }
+                                else
+                                {
+                                    usage.InputTokenCount = (usage.InputTokenCount ?? 0) + (uc.Details.InputTokenCount ?? 0);
+                                    usage.OutputTokenCount = (usage.OutputTokenCount ?? 0) + (uc.Details.OutputTokenCount ?? 0);
+                                    usage.TotalTokenCount = (usage.TotalTokenCount ?? 0) + (uc.Details.TotalTokenCount ?? 0);
+                                }
+                                break;
                         }
-                        case FunctionResultContent frc:
-                        {
-                            var step = pendingToolCalls.GetValueOrDefault(frc.CallId);
-                            var output = frc.Result?.ToString() ?? string.Empty;
-                            if (step is not null)
-                                step.Output = output;
-                            yield return new ChatStreamToolResult(step?.Name ?? "tool", output);
-                            break;
-                        }
-                        case UsageContent uc:
-                            // Tool calls produce one completion per loop turn; bill them all.
-                            if (usage is null)
-                            {
-                                usage = uc.Details;
-                            }
-                            else
-                            {
-                                usage.InputTokenCount = (usage.InputTokenCount ?? 0) + (uc.Details.InputTokenCount ?? 0);
-                                usage.OutputTokenCount = (usage.OutputTokenCount ?? 0) + (uc.Details.OutputTokenCount ?? 0);
-                                usage.TotalTokenCount = (usage.TotalTokenCount ?? 0) + (uc.Details.TotalTokenCount ?? 0);
-                            }
-                            break;
                     }
                 }
-            }
 
-            if (streamError is not null)
+                if (streamError is not null)
+                {
+                    yield return new ChatStreamError(streamError);
+                    yield break;
+                }
+
+                var done = await FinalizeAsync(command, ctx, assistantContent.ToString(), finishReason, usage, toolSteps, cancellationToken);
+                yield return new ChatStreamDone(done);
+            }
+            finally
             {
-                yield return new ChatStreamError(streamError);
-                yield break;
+                await mcpToolset.DisposeAsync();
             }
-
-            var done = await FinalizeAsync(command, ctx, assistantContent.ToString(), finishReason, usage, toolSteps, cancellationToken);
-            yield return new ChatStreamDone(done);
         }
 
         private async Task<PreflightResult> PreflightAsync(SendMessageCommand command, CancellationToken cancellationToken)

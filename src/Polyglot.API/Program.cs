@@ -80,6 +80,7 @@ builder.Services.AddScoped<IOpenRouterClient, OpenRouterClient>();
 builder.Services.AddScoped<ICreditsService, CreditsService>();
 builder.Services.AddSingleton<IJsExecutionService>(_ => new JsExecutionService());
 builder.Services.AddSingleton<IChatTitleGenerator, ChatTitleGenerator>();
+builder.Services.AddScoped<IMcpToolProvider, McpToolProvider>();
 builder.Services.AddHostedServices();
 
 // Authentication

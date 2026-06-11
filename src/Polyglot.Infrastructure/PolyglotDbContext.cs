@@ -13,6 +13,7 @@ namespace Polyglot.Infrastructure
         public DbSet<ModelListEntry> ModelListEntries => Set<ModelListEntry>();
         public DbSet<AdminSettings> AdminSettings => Set<AdminSettings>();
         public DbSet<Model> Models => Set<Model>();
+        public DbSet<McpServer> McpServers => Set<McpServer>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

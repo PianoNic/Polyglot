@@ -1,0 +1,219 @@
+<section class="flex min-h-0 flex-1 flex-col overflow-hidden">
+  <polyglot-content-header>
+    <span slot="left" class="text-sm font-medium">MCP Servers</span>
+  </polyglot-content-header>
+
+  <div class="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+    <div class="mx-auto w-full max-w-5xl">
+      @if (error(); as err) {
+        <p class="text-destructive mb-4 text-sm">{{ err }}</p>
+      }
+
+      <p class="text-muted-foreground mb-4 text-sm">
+        Connect remote MCP servers (HTTP/SSE) to expose their tools to tool-capable models.
+        Personal servers are only yours; shared servers are available to everyone.
+      </p>
+
+      <div class="mb-6 grid gap-3 rounded-lg border p-4">
+        <span class="text-sm font-medium">Add a server</span>
+        <div class="flex flex-wrap items-end gap-3">
+          <label hlmLabel class="grid gap-1 text-xs">
+            Name
+            <input
+              hlmInput
+              type="text"
+              class="w-48"
+              placeholder="My MCP server"
+              [ngModel]="draft().name"
+              (ngModelChange)="patchDraft({ name: $event })"
+            />
+          </label>
+          <label hlmLabel class="grid gap-1 text-xs">
+            URL
+            <input
+              hlmInput
+              type="url"
+              class="w-80"
+              placeholder="https://example.com/mcp"
+              [ngModel]="draft().url"
+              (ngModelChange)="patchDraft({ url: $event })"
+            />
+          </label>
+          <label hlmLabel class="grid gap-1 text-xs">
+            Transport
+            <hlm-native-select
+              [ngModel]="draft().transportMode"
+              (ngModelChange)="patchDraft({ transportMode: $event })"
+            >
+              @for (mode of transportModes; track mode) {
+                <option hlmNativeSelectOption [value]="mode">{{ mode }}</option>
+              }
+            </hlm-native-select>
+          </label>
+          <label hlmLabel class="grid gap-1 text-xs">
+            Authorization header (optional)
+            <input
+              hlmInput
+              type="text"
+              class="w-64"
+              placeholder="Bearer ..."
+              [ngModel]="draft().authorizationHeader"
+              (ngModelChange)="patchDraft({ authorizationHeader: $event })"
+            />
+          </label>
+        </div>
+        <div class="flex flex-wrap items-center gap-4">
+          <div class="flex items-center gap-2">
+            <hlm-checkbox
+              inputId="mcp-enabled"
+              [ngModel]="draft().enabled"
+              (ngModelChange)="patchDraft({ enabled: $event })"
+            />
+            <label hlmLabel for="mcp-enabled" class="text-xs">Enabled</label>
+          </div>
+          @if (userStore.isAdmin()) {
+            <div class="flex items-center gap-2">
+              <hlm-checkbox
+                inputId="mcp-global"
+                [ngModel]="draft().global"
+                (ngModelChange)="patchDraft({ global: $event })"
+              />
+              <label hlmLabel for="mcp-global" class="text-xs">Shared with everyone</label>
+            </div>
+          }
+          <button hlmBtn size="sm" type="button" (click)="addServer()">
+            <ng-icon name="lucidePlus" size="16" />
+            Add server
+          </button>
+        </div>
+      </div>
+
+      <div hlmTableContainer>
+        <table hlmTable>
+          <thead hlmTHead>
+            <tr hlmTr>
+              <th hlmTh>Name</th>
+              <th hlmTh>URL</th>
+              <th hlmTh>Transport</th>
+              <th hlmTh>Status</th>
+              <th hlmTh class="text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody hlmTBody>
+            @for (server of store.servers(); track server.id) {
+              <tr hlmTr>
+                <td hlmTd>
+                  <div class="grid">
+                    <span class="font-medium">{{ server.name }}</span>
+                    @if (server.hasAuthHeader) {
+                      <span class="text-muted-foreground text-xs">Authenticated</span>
+                    }
+                  </div>
+                </td>
+                <td hlmTd class="font-mono text-xs">{{ server.url }}</td>
+                <td hlmTd>{{ server.transportMode }}</td>
+                <td hlmTd>
+                  @if (server.enabled) {
+                    <span hlmBadge variant="secondary">Enabled</span>
+                  } @else {
+                    <span hlmBadge variant="destructive">Disabled</span>
+                  }
+                </td>
+                <td hlmTd class="text-right">
+                  @if (server.canManage) {
+                    <button
+                      hlmBtn
+                      variant="ghost"
+                      size="icon-sm"
+                      type="button"
+                      aria-label="Edit server"
+                      (click)="startEdit(server)"
+                    >
+                      <ng-icon name="lucidePencil" size="16" />
+                    </button>
+                    <button
+                      hlmBtn
+                      variant="ghost"
+                      size="icon-sm"
+                      type="button"
+                      aria-label="Delete server"
+                      (click)="removeServer(server.id)"
+                    >
+                      <ng-icon name="lucideTrash2" size="16" />
+                    </button>
+                  } @else {
+                    <span class="text-muted-foreground text-xs">Managed by an admin</span>
+                  }
+                </td>
+              </tr>
+              @if (editingId() === server.id) {
+                <tr hlmTr>
+                  <td hlmTd colspan="5">
+                    <div class="flex flex-wrap items-end gap-3 py-1">
+                      <label hlmLabel class="grid gap-1 text-xs">
+                        Name
+                        <input
+                          hlmInput
+                          type="text"
+                          class="w-48"
+                          [ngModel]="editDraft().name"
+                          (ngModelChange)="patchEditDraft({ name: $event })"
+                        />
+                      </label>
+                      <label hlmLabel class="grid gap-1 text-xs">
+                        URL
+                        <input
+                          hlmInput
+                          type="url"
+                          class="w-80"
+                          [ngModel]="editDraft().url"
+                          (ngModelChange)="patchEditDraft({ url: $event })"
+                        />
+                      </label>
+                      <label hlmLabel class="grid gap-1 text-xs">
+                        Transport
+                        <hlm-native-select
+                          [ngModel]="editDraft().transportMode"
+                          (ngModelChange)="patchEditDraft({ transportMode: $event })"
+                        >
+                          @for (mode of transportModes; track mode) {
+                            <option hlmNativeSelectOption [value]="mode">{{ mode }}</option>
+                          }
+                        </hlm-native-select>
+                      </label>
+                      <label hlmLabel class="grid gap-1 text-xs">
+                        Authorization header
+                        <input
+                          hlmInput
+                          type="text"
+                          class="w-64"
+                          [placeholder]="server.hasAuthHeader ? 'Leave blank to keep' : 'Bearer ...'"
+                          [ngModel]="editDraft().authorizationHeader"
+                          (ngModelChange)="patchEditDraft({ authorizationHeader: $event })"
+                        />
+                      </label>
+                      <div class="flex items-center gap-2">
+                        <hlm-checkbox
+                          inputId="mcp-edit-enabled"
+                          [ngModel]="editDraft().enabled"
+                          (ngModelChange)="patchEditDraft({ enabled: $event })"
+                        />
+                        <label hlmLabel for="mcp-edit-enabled" class="text-xs">Enabled</label>
+                      </div>
+                      <button hlmBtn size="sm" type="button" (click)="saveEdit()">Save</button>
+                      <button hlmBtn variant="ghost" size="sm" type="button" (click)="cancelEdit()">Cancel</button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            } @empty {
+              <tr hlmTr>
+                <td hlmTd colspan="5" class="text-muted-foreground text-center">No MCP servers yet.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
