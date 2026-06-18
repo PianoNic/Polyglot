@@ -89,6 +89,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     {
         options.Authority = builder.Configuration["Oidc:Authority"];
         options.RequireHttpsMetadata = builder.Configuration.GetValue("Oidc:RequireHttpsMetadata", true);
+        // Keep JWT claim names as-is; the legacy inbound mapping drops the "roles"
+        // array claim, which broke admin-role detection during user sync.
+        options.MapInboundClaims = false;
         options.TokenValidationParameters.NameClaimType = "name";
         options.TokenValidationParameters.RoleClaimType = "roles";
         options.TokenValidationParameters.ValidateAudience = false;
