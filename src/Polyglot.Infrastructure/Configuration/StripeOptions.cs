@@ -15,6 +15,10 @@ namespace Polyglot.Infrastructure.Configuration
         public string SuccessUrl { get; set; } = string.Empty;
         public string CancelUrl { get; set; } = string.Empty;
 
+        // Where the Stripe Customer Portal returns the browser when the user is done.
+        // Falls back to CancelUrl when unset.
+        public string PortalReturnUrl { get; set; } = string.Empty;
+
         public List<StripeProductOption> Products { get; set; } = new();
 
         public bool IsConfigured => !string.IsNullOrWhiteSpace(SecretKey);

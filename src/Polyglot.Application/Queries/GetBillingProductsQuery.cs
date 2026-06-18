@@ -12,24 +12,27 @@ namespace Polyglot.Application.Queries
     public class GetBillingProductsQueryHandler(IStripeBillingService billing)
         : IQueryHandler<GetBillingProductsQuery, Result<BillingConfigDto>>
     {
-        public ValueTask<Result<BillingConfigDto>> Handle(GetBillingProductsQuery query, CancellationToken cancellationToken)
+        public async ValueTask<Result<BillingConfigDto>> Handle(GetBillingProductsQuery query, CancellationToken cancellationToken)
         {
+            var products = await billing.GetProductsAsync(cancellationToken);
             var dto = new BillingConfigDto
             {
                 Configured = billing.IsConfigured,
                 PublishableKey = billing.PublishableKey,
-                Products = billing.GetProducts()
+                Products = products
                     .Select(p => new StripeProductDto
                     {
                         PriceId = p.PriceId,
                         Name = p.Name,
                         Credits = p.Credits,
                         Mode = p.Mode,
+                        Amount = p.Amount,
+                        Currency = p.Currency,
                     })
                     .ToList(),
             };
 
-            return ValueTask.FromResult(Result<BillingConfigDto>.Success(dto));
+            return Result<BillingConfigDto>.Success(dto);
         }
     }
 }

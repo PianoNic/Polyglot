@@ -31,6 +31,15 @@ namespace Polyglot.API.Controllers
             return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
         }
 
+        [HttpPost("portal")]
+        [ProducesResponseType(typeof(PortalSessionDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> Portal(CancellationToken cancellationToken)
+        {
+            var result = await mediator.Send(new CreatePortalSessionCommand(), cancellationToken);
+            return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
+        }
+
         // Stripe calls this directly, so it cannot require a user token; the request is
         // instead authenticated by verifying the Stripe-Signature against the webhook secret.
         [HttpPost("webhook")]

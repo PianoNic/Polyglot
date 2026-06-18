@@ -6,6 +6,10 @@ namespace Polyglot.Application.Dtos
         public required string Name { get; init; }
         public required long Credits { get; init; }
         public required string Mode { get; init; }
+
+        // Price in the currency's minor unit (e.g. cents); null if unavailable.
+        public long? Amount { get; init; }
+        public string? Currency { get; init; }
     }
 
     public record BillingConfigDto
@@ -16,6 +20,11 @@ namespace Polyglot.Application.Dtos
     }
 
     public record CheckoutSessionDto
+    {
+        public required string Url { get; init; }
+    }
+
+    public record PortalSessionDto
     {
         public required string Url { get; init; }
     }

@@ -5,7 +5,8 @@ name: polyglot
 # external network. nginx in `frontend` proxies /api to the backend, so the SPA
 # and API share one origin.
 #
-# Copy .env.example to .env and fill in the secrets before `docker compose up`.
+# All configuration lives in .env (copy it from .env.example): every service reads
+# it via env_file, so this file holds no inline environment values.
 
 services:
   frontend:
@@ -26,27 +27,8 @@ services:
       dockerfile: Polyglot.API/Dockerfile
     container_name: polyglot-api
     restart: unless-stopped
-    environment:
-      ASPNETCORE_ENVIRONMENT: Production
-      ASPNETCORE_URLS: http://+:8080
-      ConnectionStrings__PolyglotDatabase: Host=db;Port=5432;Database=${POSTGRES_DB:-polyglot};Username=postgres;Password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
-      Oidc__Authority: ${OIDC_AUTHORITY:?OIDC_AUTHORITY is required}
-      Oidc__ClientId: ${OIDC_CLIENT_ID:?OIDC_CLIENT_ID is required}
-      Oidc__RequireHttpsMetadata: "true"
-      Oidc__RedirectUri: ${PUBLIC_URL:?PUBLIC_URL is required}/
-      Oidc__PostLogoutRedirectUri: ${PUBLIC_URL}
-      Oidc__Scope: openid profile email roles
-      Cors__AllowedOrigins__0: ${PUBLIC_URL}
-      OpenRouter__ApiKey: ${OPENROUTER_API_KEY:?OPENROUTER_API_KEY is required}
-      OpenRouter__DefaultModel: ${OPENROUTER_DEFAULT_MODEL:-openai/gpt-5}
-      Chat__TitleModel: ${CHAT_TITLE_MODEL:-mistralai/mistral-nemo}
-      Backup__Enabled: ${BACKUP_ENABLED:-true}
-      Backup__TimeOfDayUtc: ${BACKUP_TIME_OF_DAY_UTC:-03:00}
-      Backup__RetentionCount: ${BACKUP_RETENTION_COUNT:-14}
-      Backup__S3__Endpoint: http://rustfs:9000
-      Backup__S3__Bucket: ${BACKUP_S3_BUCKET:-polyglot-backups}
-      Backup__S3__AccessKey: ${RUSTFS_ACCESS_KEY:?RUSTFS_ACCESS_KEY is required}
-      Backup__S3__SecretKey: ${RUSTFS_SECRET_KEY:?RUSTFS_SECRET_KEY is required}
+    env_file:
+      - .env
     depends_on:
       db:
         condition: service_healthy
@@ -72,15 +54,15 @@ services:
     image: postgres:18.3
     container_name: polyglot-postgres
     restart: unless-stopped
-    environment:
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
-      POSTGRES_DB: ${POSTGRES_DB:-polyglot}
+    env_file:
+      - .env
     volumes:
       - postgres-data:/var/lib/postgresql
     networks:
       - internal
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d ${POSTGRES_DB:-polyglot}"]
+      # $$ defers expansion to the container shell, where POSTGRES_DB is set from .env.
+      test: ["CMD-SHELL", "pg_isready -U postgres -d $$POSTGRES_DB"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -89,9 +71,8 @@ services:
     image: ghcr.io/pocket-id/pocket-id:v1
     container_name: polyglot-pocket-id
     restart: unless-stopped
-    environment:
-      APP_URL: ${OIDC_AUTHORITY:?OIDC_AUTHORITY is required}
-      TRUST_PROXY: "true"
+    env_file:
+      - .env
     volumes:
       - pocket-id-data:/app/data
     networks:
@@ -107,9 +88,8 @@ services:
     image: rustfs/rustfs:latest
     container_name: polyglot-rustfs
     restart: unless-stopped
-    environment:
-      RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY:?RUSTFS_ACCESS_KEY is required}
-      RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY:?RUSTFS_SECRET_KEY is required}
+    env_file:
+      - .env
     volumes:
       - rustfs-data:/data
     networks:
@@ -124,4 +104,4 @@ networks:
   internal:
   pangolin:
     external: true
-    name: ${PANGOLIN_NETWORK:-pangolin}
+    name: pangolin

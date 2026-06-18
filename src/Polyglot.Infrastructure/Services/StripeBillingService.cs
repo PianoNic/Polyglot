@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -20,11 +21,46 @@ namespace Polyglot.Infrastructure.Services
         public bool IsConfigured => _options.IsConfigured;
         public string? PublishableKey => _options.PublishableKey;
 
-        public IReadOnlyList<StripeProductInfo> GetProducts() =>
-            _options.Products
-                .Where(p => !string.IsNullOrWhiteSpace(p.PriceId))
-                .Select(p => new StripeProductInfo(p.PriceId, p.Name, p.Credits, p.IsSubscription ? "subscription" : "payment"))
-                .ToList();
+        // The configured amount/currency rarely changes, so a fetched price is cached for
+        // the process lifetime to keep the products endpoint off Stripe's API on every load.
+        private static readonly ConcurrentDictionary<string, (long? Amount, string? Currency)> PriceCache = new();
+
+        public async Task<IReadOnlyList<StripeProductInfo>> GetProductsAsync(CancellationToken cancellationToken = default)
+        {
+            var configured = _options.Products.Where(p => !string.IsNullOrWhiteSpace(p.PriceId)).ToList();
+            var client = IsConfigured ? new StripeClient(_options.SecretKey) : null;
+
+            var result = new List<StripeProductInfo>(configured.Count);
+            foreach (var p in configured)
+            {
+                var (amount, currency) = client is null
+                    ? (null, null)
+                    : await GetPriceAsync(client, p.PriceId, cancellationToken);
+                result.Add(new StripeProductInfo(
+                    p.PriceId, p.Name, p.Credits, p.IsSubscription ? "subscription" : "payment", amount, currency));
+            }
+            return result;
+        }
+
+        private async Task<(long? Amount, string? Currency)> GetPriceAsync(StripeClient client, string priceId, CancellationToken cancellationToken)
+        {
+            if (PriceCache.TryGetValue(priceId, out var cached))
+                return cached;
+
+            try
+            {
+                var price = await new PriceService(client).GetAsync(priceId, cancellationToken: cancellationToken);
+                var entry = (price.UnitAmount, price.Currency);
+                PriceCache[priceId] = entry;
+                return entry;
+            }
+            catch (Exception ex)
+            {
+                // Don't fail the whole catalogue if one price can't be read — show it without a price.
+                logger.LogWarning(ex, "Could not fetch Stripe price {PriceId}", priceId);
+                return (null, null);
+            }
+        }
 
         public async Task<string> CreateCheckoutSessionAsync(Guid userId, string priceId, CancellationToken cancellationToken = default)
         {
@@ -82,6 +118,33 @@ namespace Polyglot.Infrastructure.Services
             }
 
             var session = await new SessionService(client).CreateAsync(sessionOptions, cancellationToken: cancellationToken);
+            return session.Url;
+        }
+
+        public async Task<string> CreatePortalSessionAsync(Guid userId, CancellationToken cancellationToken = default)
+        {
+            if (!IsConfigured)
+                throw new InvalidOperationException("Stripe is not configured.");
+
+            var user = await dbContext.Users.SingleOrDefaultAsync(u => u.Id == userId, cancellationToken)
+                ?? throw new InvalidOperationException("User not found.");
+
+            if (string.IsNullOrEmpty(user.StripeCustomerId))
+                throw new InvalidOperationException("No billing account to manage.");
+
+            var client = new StripeClient(_options.SecretKey);
+
+            var returnUrl = string.IsNullOrWhiteSpace(_options.PortalReturnUrl)
+                ? _options.CancelUrl
+                : _options.PortalReturnUrl;
+
+            var session = await new Stripe.BillingPortal.SessionService(client).CreateAsync(
+                new Stripe.BillingPortal.SessionCreateOptions
+                {
+                    Customer = user.StripeCustomerId,
+                    ReturnUrl = returnUrl,
+                }, cancellationToken: cancellationToken);
+
             return session.Url;
         }
 

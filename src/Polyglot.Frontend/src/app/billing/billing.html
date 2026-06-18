@@ -40,6 +40,14 @@
                     <span hlmBadge variant="outline">One-time</span>
                   }
                 </div>
+                @if (product.amount != null) {
+                  <span class="text-lg font-semibold tabular-nums">
+                    {{ product.amount / 100 | currency: (product.currency ?? 'usd').toUpperCase() }}
+                    @if (product.mode === 'subscription') {
+                      <span class="text-muted-foreground text-sm font-normal">/ mo</span>
+                    }
+                  </span>
+                }
                 <span class="text-muted-foreground text-sm tabular-nums">
                   {{ product.credits | number }} credits
                 </span>
@@ -56,6 +64,22 @@
               </div>
             }
           </div>
+
+          @if (hasSubscriptions()) {
+            <div class="mt-2 flex items-center justify-between gap-3 rounded-lg border p-4">
+              <span class="text-muted-foreground text-sm">Manage or cancel an active subscription.</span>
+              <button
+                hlmBtn
+                size="sm"
+                variant="outline"
+                type="button"
+                [disabled]="managing()"
+                (click)="manage()"
+              >
+                Manage subscription
+              </button>
+            </div>
+          }
         }
       }
     </div>

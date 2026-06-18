@@ -2,6 +2,8 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Polyglot.Domain;
+using Polyglot.Infrastructure;
 using Polyglot.Infrastructure.Configuration;
 using Polyglot.Infrastructure.Services;
 using Polyglot.Tests.Helpers;
@@ -16,7 +18,7 @@ public class StripeBillingServiceTests
     private const string Secret = "whsec_unit_test_secret";
     private const string SubPrice = "price_sub_unit";
 
-    private static StripeBillingService CreateService()
+    private static StripeBillingService CreateService(PolyglotDbContext? dbContext = null)
     {
         var options = new StripeOptions
         {
@@ -27,7 +29,7 @@ public class StripeBillingServiceTests
                 new StripeProductOption { PriceId = SubPrice, Name = "Sub", Credits = 100_000, Mode = "subscription" },
             },
         };
-        return new StripeBillingService(Options.Create(options), DbHelper.CreateContext(), NullLogger<StripeBillingService>.Instance);
+        return new StripeBillingService(Options.Create(options), dbContext ?? DbHelper.CreateContext(), NullLogger<StripeBillingService>.Instance);
     }
 
     private static string Sign(string payload)
@@ -77,6 +79,32 @@ public class StripeBillingServiceTests
         var grant = CreateService().ParseWebhook(payload, Sign(payload));
 
         await Assert.That(grant).IsNull();
+    }
+
+    [Test]
+    public async Task CreatePortalSession_NoStripeCustomer_Throws()
+    {
+        var db = DbHelper.CreateContext();
+        var user = new User
+        {
+            ExternalId = Guid.NewGuid().ToString(),
+            Email = "user@example.com",
+            Preferences = new UserPreferences(),
+        };
+        db.Users.Add(user);
+        await db.SaveChangesAsync();
+
+        var threw = false;
+        try
+        {
+            await CreateService(db).CreatePortalSessionAsync(user.Id);
+        }
+        catch (InvalidOperationException)
+        {
+            threw = true;
+        }
+
+        await Assert.That(threw).IsTrue();
     }
 
     [Test]

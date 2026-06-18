@@ -8,6 +8,8 @@ export interface StripeProduct {
   name: string;
   credits: number;
   mode: string;
+  amount?: number | null;
+  currency?: string | null;
 }
 
 export interface BillingConfig {
@@ -17,6 +19,10 @@ export interface BillingConfig {
 }
 
 export interface CheckoutSession {
+  url: string;
+}
+
+export interface PortalSession {
   url: string;
 }
 
@@ -34,6 +40,12 @@ export class BillingService {
   createCheckout(priceId: string): Promise<CheckoutSession> {
     return firstValueFrom(
       this.http.post<CheckoutSession>(`${this.basePath}/api/billing/checkout`, { priceId }),
+    );
+  }
+
+  createPortalSession(): Promise<PortalSession> {
+    return firstValueFrom(
+      this.http.post<PortalSession>(`${this.basePath}/api/billing/portal`, {}),
     );
   }
 }

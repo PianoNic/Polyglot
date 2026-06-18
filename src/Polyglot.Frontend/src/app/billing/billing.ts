@@ -1,5 +1,5 @@
-import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
-import { DecimalPipe } from '@angular/common';
+import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
+import { CurrencyPipe, DecimalPipe } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmBadge } from '@spartan-ng/helm/badge';
@@ -11,7 +11,7 @@ import { BillingService, type BillingConfig } from './billing.service';
   selector: 'polyglot-billing',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'flex min-h-0 flex-1 flex-col' },
-  imports: [DecimalPipe, HlmButton, HlmBadge, ContentHeader],
+  imports: [CurrencyPipe, DecimalPipe, HlmButton, HlmBadge, ContentHeader],
   templateUrl: './billing.html',
 })
 export class Billing implements OnInit {
@@ -23,6 +23,12 @@ export class Billing implements OnInit {
   protected readonly error = signal<string | null>(null);
   protected readonly pending = signal<string | null>(null);
   protected readonly notice = signal<'success' | 'cancel' | null>(null);
+  protected readonly managing = signal(false);
+
+  // The Customer Portal is only useful once the catalogue offers subscriptions.
+  protected readonly hasSubscriptions = computed(
+    () => this.config()?.products.some((p) => p.mode === 'subscription') ?? false,
+  );
 
   async ngOnInit(): Promise<void> {
     void this.userStore.load();
@@ -53,6 +59,18 @@ export class Billing implements OnInit {
     } catch {
       this.error.set('Could not start checkout. Please try again.');
       this.pending.set(null);
+    }
+  }
+
+  protected async manage(): Promise<void> {
+    this.error.set(null);
+    this.managing.set(true);
+    try {
+      const session = await this.billing.createPortalSession();
+      window.location.href = session.url;
+    } catch {
+      this.error.set('Could not open the billing portal. Please try again.');
+      this.managing.set(false);
     }
   }
 }
