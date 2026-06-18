@@ -1,0 +1,32 @@
+using Mediator;
+using Microsoft.EntityFrameworkCore;
+using Polyglot.Application.Dtos;
+using Polyglot.Application.Mappers;
+using Polyglot.Application.Models;
+using Polyglot.Infrastructure;
+using Polyglot.Infrastructure.Services;
+
+namespace Polyglot.Application.Command
+{
+    // Updates the current user's preferences. A null/blank PreferredImageModel clears it,
+    // falling back to the server's configured default image model.
+    public record UpdateUserPreferencesCommand(string? PreferredImageModel) : ICommand<Result<UserDto>>;
+
+    public class UpdateUserPreferencesCommandHandler(IUserService userService, PolyglotDbContext dbContext)
+        : ICommandHandler<UpdateUserPreferencesCommand, Result<UserDto>>
+    {
+        public async ValueTask<Result<UserDto>> Handle(UpdateUserPreferencesCommand command, CancellationToken cancellationToken)
+        {
+            var userId = await userService.GetCurrentUserIdAsync(cancellationToken);
+            var user = await dbContext.Users.SingleAsync(u => u.Id == userId, cancellationToken);
+
+            user.Preferences.PreferredImageModel = string.IsNullOrWhiteSpace(command.PreferredImageModel)
+                ? null
+                : command.PreferredImageModel.Trim();
+
+            await dbContext.SaveChangesAsync(cancellationToken);
+
+            return Result<UserDto>.Success(user.ToDto());
+        }
+    }
+}

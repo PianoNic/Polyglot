@@ -18,6 +18,7 @@ export interface UserDto {
     role: UserRole;
     creditBalance: number;
     isLocked: boolean;
+    preferredImageModel?: string | null;
 }
 export namespace UserDto {
 }

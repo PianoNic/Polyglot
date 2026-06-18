@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, OnInit, signal, untracked, viewChild } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { HttpClient } from '@angular/common/http';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { distinctUntilChanged, map } from 'rxjs';
@@ -15,9 +16,12 @@ import {
   lucideMic,
   lucideChevronDown,
   lucideGlobe,
+  lucideImage,
 } from '@ng-icons/lucide';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmIcon } from '@spartan-ng/helm/icon';
+import { HlmLabel } from '@spartan-ng/helm/label';
+import { HlmNativeSelectImports } from '@spartan-ng/helm/native-select';
 import { HlmPopoverImports } from '@spartan-ng/helm/popover';
 import { MessageRole } from '../api/model/messageRole';
 import type { AttachmentDto } from '../api/model/attachmentDto';
@@ -41,6 +45,8 @@ import { PkSystemMessage } from '../../../libs/prompt-kit/system-message/pk-syst
 import { PkTokenCounter } from '../../../libs/prompt-kit/token-counter/pk-token-counter';
 import { ChatStore } from '../shared/stores/ChatStore.store';
 import type { ToolStep } from '../shared/stores/ChatStore.store';
+import { UserStore } from '../shared/stores/UserStore.store';
+import { AuthImage } from '../shared/components/auth-image/auth-image';
 
 const SUGGESTIONS: ChatEmptySuggestion[] = [
   { label: 'Explain a concept', icon: 'lucideLightbulb', prompt: 'Explain how OAuth 2.0 works.' },
@@ -55,8 +61,12 @@ const SUGGESTIONS: ChatEmptySuggestion[] = [
   host: { class: 'flex min-h-0 flex-1 flex-col' },
   imports: [
     NgIcon,
+    FormsModule,
     HlmButton,
     HlmIcon,
+    HlmLabel,
+    HlmNativeSelectImports,
+    AuthImage,
     PkChainOfThoughtImports,
     PkChatContainerImports,
     PkCodeBlockImports,
@@ -84,6 +94,7 @@ const SUGGESTIONS: ChatEmptySuggestion[] = [
       lucideMic,
       lucideChevronDown,
       lucideGlobe,
+      lucideImage,
     }),
   ],
   templateUrl: './chat.html',
@@ -94,7 +105,14 @@ export class Chat implements OnInit {
   private readonly http = inject(HttpClient);
   private readonly basePath = inject(BASE_PATH);
   protected readonly store = inject(ChatStore);
+  protected readonly userStore = inject(UserStore);
   protected readonly Role = MessageRole;
+
+  protected readonly imageMenuState = signal<'open' | 'closed'>('closed');
+  // Models that can produce images, for the per-user image-tool model preference.
+  protected readonly imageModels = computed(() =>
+    this.store.models().filter((m) => m.outputModalities?.includes('image')),
+  );
 
   private readonly fileInput = viewChild<ElementRef<HTMLInputElement>>('fileInput');
 
@@ -153,6 +171,11 @@ export class Chat implements OnInit {
   ngOnInit(): void {
     void this.store.loadChats();
     void this.store.loadModels();
+    void this.userStore.load();
+  }
+
+  protected setImageModel(modelId: string): void {
+    void this.userStore.setPreferredImageModel(modelId === '' ? null : modelId);
   }
 
   protected onModelChanged(id: string | null): void {

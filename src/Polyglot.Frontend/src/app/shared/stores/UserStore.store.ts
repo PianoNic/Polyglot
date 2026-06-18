@@ -39,7 +39,14 @@ export const UserStore = signalStore(
       patchState(store, { currentUser: me, loaded: true });
     }
 
-    return { load };
+    async function setPreferredImageModel(modelId: string | null): Promise<void> {
+      const updated = await firstValueFrom(
+        userService.apiUserPreferencesPut({ preferredImageModel: modelId }),
+      );
+      patchState(store, { currentUser: updated });
+    }
+
+    return { load, setPreferredImageModel };
   }),
   withHooks(() => ({})),
 );

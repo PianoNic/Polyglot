@@ -1,10 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Configuration;
 using NSubstitute;
 using Polyglot.Application.Command;
 using Polyglot.Domain;
 using Polyglot.Domain.Enums;
 using Polyglot.Infrastructure;
+using Polyglot.Infrastructure.Clients;
 using Polyglot.Infrastructure.Extensions;
 using Polyglot.Infrastructure.Services;
 
@@ -488,8 +490,9 @@ public class SendMessageCommandTests
         await Collect(handler.Handle(new SendMessageCommand(null, "Hello", "gpt-4"), CancellationToken.None));
 
         await Assert.That(captured).IsNotNull();
-        await Assert.That(captured!.Tools!.Count).IsEqualTo(1);
-        await Assert.That(captured.Tools![0].Name).IsEqualTo("execute_javascript");
+        var toolNames = captured!.Tools!.Select(t => t.Name).ToList();
+        await Assert.That(toolNames).Contains("execute_javascript");
+        await Assert.That(toolNames).Contains("generate_image");
     }
 
     [Test]
@@ -690,7 +693,8 @@ public class SendMessageCommandTests
         PolyglotDbContext db,
         Guid userId,
         ICreditsService? creditsService = null,
-        IChatClientFactory? chatClientFactory = null)
+        IChatClientFactory? chatClientFactory = null,
+        IOpenRouterClient? openRouterClient = null)
     {
         var userService = Substitute.For<IUserService>();
         userService.GetCurrentUserIdAsync(Arg.Any<CancellationToken>()).Returns(userId);
@@ -705,6 +709,8 @@ public class SendMessageCommandTests
             creditsService ?? Substitute.For<ICreditsService>(),
             Substitute.For<IChatTitleGenerator>(),
             new JsExecutionService(),
-            mcpToolProvider);
+            mcpToolProvider,
+            openRouterClient ?? Substitute.For<IOpenRouterClient>(),
+            Substitute.For<IConfiguration>());
     }
 }

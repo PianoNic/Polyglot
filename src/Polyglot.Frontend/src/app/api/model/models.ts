@@ -24,5 +24,6 @@ export * from './sendMessageDto';
 export * from './setUserLockDto';
 export * from './updateAdminSettingsCommand';
 export * from './updateMcpServerCommand';
+export * from './updateUserPreferencesCommand';
 export * from './userDto';
 export * from './userRole';

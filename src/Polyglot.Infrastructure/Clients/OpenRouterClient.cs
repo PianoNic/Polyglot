@@ -1,9 +1,12 @@
+using Microsoft.Extensions.Configuration;
 using Polyglot.Infrastructure.Dtos;
+using System.Net.Http.Headers;
+using System.Text;
 using System.Text.Json;
 
 namespace Polyglot.Infrastructure.Clients
 {
-    public class OpenRouterClient(IHttpClientFactory httpClientFactory) : IOpenRouterClient
+    public class OpenRouterClient(IHttpClientFactory httpClientFactory, IConfiguration configuration) : IOpenRouterClient
     {
         public async Task<List<AvailableModelDto>> GetModelsAsync(CancellationToken cancellationToken = default)
         {
@@ -51,6 +54,62 @@ namespace Polyglot.Infrastructure.Clients
             }
 
             return models;
+        }
+
+        public async Task<GeneratedImage> GenerateImageAsync(string model, string prompt, CancellationToken cancellationToken = default)
+        {
+            var apiKey = configuration["OpenRouter:ApiKey"] ?? throw new InvalidOperationException("OpenRouter:ApiKey not configured");
+            var client = httpClientFactory.CreateClient();
+
+            var body = new
+            {
+                model,
+                messages = new[] { new { role = "user", content = prompt } },
+                modalities = new[] { "image", "text" }
+            };
+
+            using var request = new HttpRequestMessage(HttpMethod.Post, "https://openrouter.ai/api/v1/chat/completions")
+            {
+                Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json")
+            };
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+
+            using var response = await client.SendAsync(request, cancellationToken);
+            response.EnsureSuccessStatusCode();
+
+            using var json = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(cancellationToken), cancellationToken: cancellationToken);
+            var root = json.RootElement;
+            var message = root.GetProperty("choices")[0].GetProperty("message");
+
+            if (!message.TryGetProperty("images", out var images) || images.ValueKind != JsonValueKind.Array || images.GetArrayLength() == 0)
+                throw new InvalidOperationException("The image model returned no image.");
+
+            var dataUrl = images[0].GetProperty("image_url").GetProperty("url").GetString()
+                ?? throw new InvalidOperationException("The image model returned an empty image URL.");
+
+            var (data, mediaType) = ParseDataUrl(dataUrl);
+
+            decimal cost = 0m;
+            if (root.TryGetProperty("usage", out var usage)
+                && usage.TryGetProperty("cost", out var costEl)
+                && costEl.ValueKind == JsonValueKind.Number)
+                cost = costEl.GetDecimal();
+
+            return new GeneratedImage(data, mediaType, cost);
+        }
+
+        // Parses "data:<media-type>;base64,<payload>" into raw bytes + media type.
+        private static (byte[] Data, string MediaType) ParseDataUrl(string dataUrl)
+        {
+            var comma = dataUrl.IndexOf(',');
+            if (comma < 0 || !dataUrl.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("Unexpected image data URL format.");
+
+            var mediaType = dataUrl[5..comma].Split(';')[0];
+            if (string.IsNullOrEmpty(mediaType))
+                mediaType = "image/png";
+
+            return (Convert.FromBase64String(dataUrl[(comma + 1)..]), mediaType);
         }
     }
 }

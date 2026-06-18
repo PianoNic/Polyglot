@@ -16,6 +16,7 @@ namespace Polyglot.Application.Mappers
                 Role = user.Role,
                 CreditBalance = user.CreditBalance,
                 IsLocked = user.IsLocked,
+                PreferredImageModel = user.Preferences?.PreferredImageModel,
             };
         }
     }

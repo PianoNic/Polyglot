@@ -15,7 +15,10 @@ namespace Polyglot.Infrastructure.DBConfigurations
             builder.Property(u => u.Email).HasMaxLength(255);
             builder.Property(u => u.DisplayName).HasMaxLength(100);
             builder.Property(u => u.Role).HasConversion<string>().HasMaxLength(20);
-            builder.OwnsOne(u => u.Preferences);
+            builder.OwnsOne(u => u.Preferences, p =>
+            {
+                p.Property(x => x.PreferredImageModel).HasMaxLength(128);
+            });
         }
     }
 }

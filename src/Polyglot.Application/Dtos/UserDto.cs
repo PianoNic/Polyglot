@@ -11,4 +11,5 @@ public record UserDto
     public required UserRole Role { get; init; }
     public required long CreditBalance { get; init; }
     public required bool IsLocked { get; init; }
+    public string? PreferredImageModel { get; init; }
 }

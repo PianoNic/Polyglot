@@ -94,6 +94,17 @@
                   }
                 }
                 <pk-message-content [markdown]="true" [content]="m.content" class="bg-transparent p-0" />
+                @if (m.attachments.length > 0) {
+                  <div class="flex flex-wrap gap-2">
+                    @for (a of m.attachments; track a.id) {
+                      @if (a.mediaType.startsWith('image/')) {
+                        <polyglot-auth-image [attachmentId]="a.id" [alt]="a.fileName" />
+                      } @else {
+                        <pk-attachment-chip [attachment]="asChip(a)" [removable]="false" (clicked)="openAttachment($event)" />
+                      }
+                    }
+                  </div>
+                }
               </div>
             </pk-message>
           }
@@ -215,6 +226,38 @@
               >
                 <ng-icon hlm size="sm" name="lucideGlobe" />
               </button>
+            </pk-prompt-input-action>
+            <pk-prompt-input-action tooltip="Image model">
+              <hlm-popover
+                sideOffset="6"
+                [state]="imageMenuState()"
+                (stateChanged)="imageMenuState.set($event)"
+              >
+                <button
+                  hlmBtn
+                  variant="ghost"
+                  size="icon-sm"
+                  type="button"
+                  aria-label="Image generation model"
+                  hlmPopoverTrigger
+                >
+                  <ng-icon hlm size="sm" name="lucideImage" />
+                </button>
+                <hlm-popover-content class="w-72 p-3" *hlmPopoverPortal>
+                  <label hlmLabel class="grid gap-1 text-xs">
+                    Image generation model
+                    <hlm-native-select
+                      [ngModel]="userStore.currentUser()?.preferredImageModel ?? ''"
+                      (ngModelChange)="setImageModel($event)"
+                    >
+                      <option hlmNativeSelectOption value="">Default</option>
+                      @for (m of imageModels(); track m.id) {
+                        <option hlmNativeSelectOption [value]="m.id">{{ m.name }}</option>
+                      }
+                    </hlm-native-select>
+                  </label>
+                </hlm-popover-content>
+              </hlm-popover>
             </pk-prompt-input-action>
             <pk-prompt-input-action tooltip="Voice input">
               <button hlmBtn variant="ghost" size="icon-sm" type="button" aria-label="Voice input" disabled>

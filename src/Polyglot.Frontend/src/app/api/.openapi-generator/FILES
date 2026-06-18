@@ -41,6 +41,7 @@ model/sendMessageDto.ts
 model/setUserLockDto.ts
 model/updateAdminSettingsCommand.ts
 model/updateMcpServerCommand.ts
+model/updateUserPreferencesCommand.ts
 model/userDto.ts
 model/userRole.ts
 param.ts

@@ -5,11 +5,13 @@ using System.Text.Json;
 using Mediator;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Configuration;
 using Polyglot.Application.Dtos;
 using Polyglot.Application.Mappers;
 using Polyglot.Domain;
 using Polyglot.Domain.Enums;
 using Polyglot.Infrastructure;
+using Polyglot.Infrastructure.Clients;
 using Polyglot.Infrastructure.Extensions;
 using Polyglot.Infrastructure.Services;
 
@@ -24,8 +26,10 @@ namespace Polyglot.Application.Command
     public sealed record ChatStreamDone(SendMessageDto Result) : ChatStreamEvent;
     public sealed record ChatStreamError(string Message) : ChatStreamEvent;
 
-    public class SendMessageCommandHandler(IUserService userService, PolyglotDbContext dbContext, IChatClientFactory chatClientFactory, ICreditsService creditsService, IChatTitleGenerator titleGenerator, IJsExecutionService jsExecutionService, IMcpToolProvider mcpToolProvider) : IStreamCommandHandler<SendMessageCommand, ChatStreamEvent>
+    public class SendMessageCommandHandler(IUserService userService, PolyglotDbContext dbContext, IChatClientFactory chatClientFactory, ICreditsService creditsService, IChatTitleGenerator titleGenerator, IJsExecutionService jsExecutionService, IMcpToolProvider mcpToolProvider, IOpenRouterClient openRouterClient, IConfiguration configuration) : IStreamCommandHandler<SendMessageCommand, ChatStreamEvent>
     {
+        private const string FallbackImageModel = "google/gemini-2.5-flash-image";
+
         // Tool steps are serialized for human display in the chat UI, so keep
         // characters like '+' readable instead of \u-escaped.
         private static readonly JsonSerializerOptions ToolStepJsonOptions = new(JsonSerializerOptions.Web)
@@ -54,17 +58,24 @@ namespace Polyglot.Application.Command
             var toolSteps = new List<ToolStep>();
             var pendingToolCalls = new Dictionary<string, ToolStep>();
 
+            // Built-in image-generation tool: images it produces are collected here and
+            // linked to the assistant message once it is created, and their upstream cost
+            // is billed in credits during finalize.
+            var generatedImages = new List<Attachment>();
+            decimal imageCostUsd = 0m;
+
             // Tool gating: only models that advertise tool support get tools attached.
-            // MCP tools (the user's own + shared servers) are added alongside the built-in
-            // JavaScript tool; the toolset owns live connections, so it is disposed below.
+            // The built-in JavaScript and image-generation tools run in-process (using the
+            // server's OpenRouter key and billing the user); MCP tools come from the user's
+            // own and shared servers and are appended, with the toolset disposed below.
             ChatOptions? chatOptions = null;
             var mcpToolset = McpToolset.Empty;
             if (ctx.Model.SupportedParameters.Contains("tools"))
             {
                 mcpToolset = await mcpToolProvider.GetToolsForUserAsync(ctx.User.Id, cancellationToken);
 
-                var tools = new List<AITool> { CreateJsExecutionTool() };
-                var seenNames = new HashSet<string>(StringComparer.Ordinal) { "execute_javascript" };
+                var tools = new List<AITool> { CreateJsExecutionTool(), CreateImageGenerationTool(ctx, generatedImages, c => imageCostUsd += c) };
+                var seenNames = new HashSet<string>(StringComparer.Ordinal) { "execute_javascript", "generate_image" };
                 foreach (var mcpTool in mcpToolset.Tools)
                     if (seenNames.Add(mcpTool.Name))
                         tools.Add(mcpTool);
@@ -147,7 +158,7 @@ namespace Polyglot.Application.Command
                     yield break;
                 }
 
-                var done = await FinalizeAsync(command, ctx, assistantContent.ToString(), finishReason, usage, toolSteps, cancellationToken);
+                var done = await FinalizeAsync(command, ctx, assistantContent.ToString(), finishReason, usage, toolSteps, generatedImages, imageCostUsd, cancellationToken);
                 yield return new ChatStreamDone(done);
             }
             finally
@@ -281,7 +292,7 @@ namespace Polyglot.Application.Command
             };
         }
 
-        private async Task<SendMessageDto> FinalizeAsync(SendMessageCommand command, PreflightContext ctx, string assistantText, ChatFinishReason? finishReason, UsageDetails? usage, List<ToolStep> toolSteps, CancellationToken cancellationToken)
+        private async Task<SendMessageDto> FinalizeAsync(SendMessageCommand command, PreflightContext ctx, string assistantText, ChatFinishReason? finishReason, UsageDetails? usage, List<ToolStep> toolSteps, List<Attachment> generatedImages, decimal imageCostUsd, CancellationToken cancellationToken)
         {
             var promptTokens = (int)(usage?.InputTokenCount ?? 0);
             var completionTokens = (int)(usage?.OutputTokenCount ?? 0);
@@ -292,7 +303,12 @@ namespace Polyglot.Application.Command
                 ctx.Model.CompletionPricePerMillion,
                 cancellationToken);
 
-            ctx.User.CreditBalance -= actualCredits;
+            // Image generation is billed separately from the OpenRouter cost it reported.
+            var imageCredits = imageCostUsd > 0m
+                ? await creditsService.FromUsdAsync(imageCostUsd, cancellationToken)
+                : 0L;
+
+            ctx.User.CreditBalance -= actualCredits + imageCredits;
 
             var assistantMessage = new Message
             {
@@ -307,6 +323,13 @@ namespace Polyglot.Application.Command
             };
             ctx.Chat.Messages.Add(assistantMessage);
             dbContext.Messages.Add(assistantMessage);
+
+            // Attach any images the generate_image tool produced to this assistant message.
+            foreach (var image in generatedImages)
+            {
+                image.MessageId = assistantMessage.Id;
+                dbContext.Attachments.Add(image);
+            }
 
             var isFirstExchange = ctx.Chat.Title == "New Chat" && ctx.UserSequence == 0;
             if (isFirstExchange)
@@ -336,12 +359,22 @@ namespace Polyglot.Application.Command
                 })
                 .ToList();
 
+            var assistantAttachmentDtos = generatedImages
+                .Select(a => new AttachmentDto
+                {
+                    Id = a.Id,
+                    FileName = a.FileName,
+                    MediaType = a.MediaType,
+                    SizeBytes = a.SizeBytes,
+                })
+                .ToList();
+
             return new SendMessageDto
             {
                 ChatId = ctx.Chat.Id,
                 ChatTitle = ctx.Chat.Title,
                 UserMessage = ctx.UserMessage.ToDto(userAttachmentDtos),
-                AssistantMessage = assistantMessage.ToDto(),
+                AssistantMessage = assistantMessage.ToDto(assistantAttachmentDtos),
             };
         }
 
@@ -359,6 +392,54 @@ namespace Polyglot.Application.Command
                 "Executes JavaScript code in a secure sandbox and returns its console output and the value of the final expression. "
                 + "There is no network, filesystem, DOM, or module access; use console.log to print intermediate results. "
                 + "If execution fails, the error is returned so the code can be fixed and retried.");
+
+        // Built-in image-generation tool. Runs in-process so it can use the server's
+        // OpenRouter key and bill the user: generated images are added to the shared list
+        // (linked to the assistant message in FinalizeAsync) and their cost is reported
+        // back via addCost for credit billing.
+        private AIFunction CreateImageGenerationTool(PreflightContext ctx, List<Attachment> generatedImages, Action<decimal> addCost)
+        {
+            var imageModel = string.IsNullOrWhiteSpace(ctx.User.Preferences?.PreferredImageModel)
+                ? configuration["ImageGen:DefaultModel"] ?? FallbackImageModel
+                : ctx.User.Preferences!.PreferredImageModel!;
+
+            return AIFunctionFactory.Create(
+                async ([Description("A detailed description of the image to generate.")] string prompt, CancellationToken ct) =>
+                {
+                    try
+                    {
+                        var image = await openRouterClient.GenerateImageAsync(imageModel, prompt, ct);
+                        var ext = image.MediaType switch
+                        {
+                            "image/png" => "png",
+                            "image/jpeg" => "jpg",
+                            "image/webp" => "webp",
+                            "image/gif" => "gif",
+                            _ => "img"
+                        };
+                        generatedImages.Add(new Attachment
+                        {
+                            UserId = ctx.User.Id,
+                            FileName = $"generated-image-{generatedImages.Count + 1}.{ext}",
+                            MediaType = image.MediaType,
+                            Data = image.Data,
+                            SizeBytes = image.Data.Length,
+                        });
+                        addCost(image.CostUsd);
+                        return "Image generated and attached to your reply.";
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        throw;
+                    }
+                    catch (Exception ex)
+                    {
+                        return $"Image generation failed: {ex.Message}";
+                    }
+                },
+                "generate_image",
+                "Generates an image from a text description and attaches it to your reply. Provide a detailed prompt describing what the image should show.");
+        }
 
         // Images and PDFs go to the model as base64 data URIs (DataContent);
         // plain-text files are inlined as prompt text.
