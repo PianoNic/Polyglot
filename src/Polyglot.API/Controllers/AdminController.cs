@@ -1,4 +1,5 @@
 using Mediator;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Polyglot.Application.Command;
 using Polyglot.Application.Dtos;
@@ -9,7 +10,9 @@ namespace Polyglot.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    // TODO: Add role-based authorization via custom attribute (see auth issue)
+    // Roles come from the "roles" claim (RoleClaimType configured in Program.cs,
+    // inbound claim mapping disabled), so this restricts every action to admins.
+    [Authorize(Roles = "admin")]
     public class AdminController(IMediator mediator) : ControllerBase
     {
         [HttpGet("users")]
