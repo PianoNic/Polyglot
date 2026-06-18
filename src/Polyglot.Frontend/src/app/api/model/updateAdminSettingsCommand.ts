@@ -16,6 +16,7 @@ export interface UpdateAdminSettingsCommand {
     startingBalance?: number;
     costMultiplier?: number;
     creditsPerUsd?: number;
+    defaultImageModel?: string | null;
 }
 export namespace UpdateAdminSettingsCommand {
 }

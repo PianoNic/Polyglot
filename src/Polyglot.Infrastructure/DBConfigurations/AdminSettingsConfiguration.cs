@@ -13,6 +13,7 @@ namespace Polyglot.Infrastructure.DBConfigurations
             builder.Property(a => a.MaxPricePerMillionTokens).HasPrecision(18, 6);
             builder.Property(a => a.CostMultiplier).HasPrecision(8, 4);
             builder.Property(a => a.CreditsPerUsd).HasPrecision(18, 4);
+            builder.Property(a => a.DefaultImageModel).HasMaxLength(128);
 
             builder.ToTable(t => t.HasCheckConstraint("CK_AdminSettings_Singleton", $"\"Id\" = '{AdminSettings.SingletonId}'"));
         }

@@ -16,5 +16,8 @@ namespace Polyglot.Domain
         public long StartingBalance { get; set; } = 10_000;
         public decimal CostMultiplier { get; set; } = 1.0m;
         public decimal CreditsPerUsd { get; set; } = 10_000m;
+
+        // Default model for the built-in image-generation tool when a user hasn't picked one.
+        public string? DefaultImageModel { get; set; } = "google/gemini-2.5-flash-image";
     }
 }

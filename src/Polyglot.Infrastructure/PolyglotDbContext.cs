@@ -14,6 +14,7 @@ namespace Polyglot.Infrastructure
         public DbSet<AdminSettings> AdminSettings => Set<AdminSettings>();
         public DbSet<Model> Models => Set<Model>();
         public DbSet<McpServer> McpServers => Set<McpServer>();
+        public DbSet<StripeEvent> StripeEvents => Set<StripeEvent>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

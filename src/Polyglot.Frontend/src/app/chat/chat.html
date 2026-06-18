@@ -227,38 +227,6 @@
                 <ng-icon hlm size="sm" name="lucideGlobe" />
               </button>
             </pk-prompt-input-action>
-            <pk-prompt-input-action tooltip="Image model">
-              <hlm-popover
-                sideOffset="6"
-                [state]="imageMenuState()"
-                (stateChanged)="imageMenuState.set($event)"
-              >
-                <button
-                  hlmBtn
-                  variant="ghost"
-                  size="icon-sm"
-                  type="button"
-                  aria-label="Image generation model"
-                  hlmPopoverTrigger
-                >
-                  <ng-icon hlm size="sm" name="lucideImage" />
-                </button>
-                <hlm-popover-content class="w-72 p-3" *hlmPopoverPortal>
-                  <label hlmLabel class="grid gap-1 text-xs">
-                    Image generation model
-                    <hlm-native-select
-                      [ngModel]="userStore.currentUser()?.preferredImageModel ?? ''"
-                      (ngModelChange)="setImageModel($event)"
-                    >
-                      <option hlmNativeSelectOption value="">Default</option>
-                      @for (m of imageModels(); track m.id) {
-                        <option hlmNativeSelectOption [value]="m.id">{{ m.name }}</option>
-                      }
-                    </hlm-native-select>
-                  </label>
-                </hlm-popover-content>
-              </hlm-popover>
-            </pk-prompt-input-action>
             <pk-prompt-input-action tooltip="Voice input">
               <button hlmBtn variant="ghost" size="icon-sm" type="button" aria-label="Voice input" disabled>
                 <ng-icon hlm size="sm" name="lucideMic" />

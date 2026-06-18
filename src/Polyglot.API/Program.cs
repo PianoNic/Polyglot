@@ -5,6 +5,7 @@ using Microsoft.OpenApi;
 using Polyglot.API.Extensions;
 using Polyglot.Infrastructure;
 using Polyglot.Infrastructure.Clients;
+using Polyglot.Infrastructure.Configuration;
 using Polyglot.Infrastructure.Extensions;
 using Polyglot.Infrastructure.Services;
 using Polyglot.Infrastructure.BackgroundServices;
@@ -81,6 +82,8 @@ builder.Services.AddScoped<ICreditsService, CreditsService>();
 builder.Services.AddSingleton<IJsExecutionService>(_ => new JsExecutionService());
 builder.Services.AddSingleton<IChatTitleGenerator, ChatTitleGenerator>();
 builder.Services.AddScoped<IMcpToolProvider, McpToolProvider>();
+builder.Services.AddScoped<IStripeBillingService, StripeBillingService>();
+builder.Services.Configure<StripeOptions>(builder.Configuration.GetSection(StripeOptions.SectionName));
 builder.Services.AddHostedServices();
 
 // Authentication

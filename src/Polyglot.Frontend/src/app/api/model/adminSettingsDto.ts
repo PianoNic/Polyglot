@@ -16,6 +16,7 @@ export interface AdminSettingsDto {
     startingBalance: number;
     costMultiplier: number;
     creditsPerUsd: number;
+    defaultImageModel?: string | null;
 }
 export namespace AdminSettingsDto {
 }

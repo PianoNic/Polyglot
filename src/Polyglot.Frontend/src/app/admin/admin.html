@@ -227,6 +227,18 @@
                 (ngModelChange)="patchDraft({ creditsPerUsd: $event })"
               />
             </label>
+            <label hlmLabel class="grid gap-1 text-xs">
+              Default image model
+              <hlm-native-select
+                [ngModel]="settingsDraft().defaultImageModel ?? ''"
+                (ngModelChange)="patchDraft({ defaultImageModel: $event === '' ? null : $event })"
+              >
+                <option hlmNativeSelectOption value="">(server default)</option>
+                @for (model of imageModels(); track model.id) {
+                  <option hlmNativeSelectOption [value]="model.id">{{ model.name }}</option>
+                }
+              </hlm-native-select>
+            </label>
             <button hlmBtn type="button" class="w-fit" (click)="saveSettings()">Save settings</button>
           </div>
         </div>

@@ -65,6 +65,10 @@
                   <ng-icon name="lucidePlug" />
                   MCP Servers
                 </a>
+                <a hlmDropdownMenuItem routerLink="/settings">
+                  <ng-icon name="lucideSettings" />
+                  Settings
+                </a>
                 @if (userStore.isAdmin()) {
                   <a hlmDropdownMenuItem routerLink="/admin">
                     <ng-icon name="lucideShield" />
@@ -76,10 +80,10 @@
               <hlm-dropdown-menu-separator />
 
               <hlm-dropdown-menu-group>
-                <button hlmDropdownMenuItem>
+                <a hlmDropdownMenuItem routerLink="/billing">
                   <ng-icon name="lucideCoins" />
-                  Buy tokens
-                </button>
+                  Buy credits
+                </a>
                 <button hlmDropdownMenuItem (click)="creditsInfoState.set('open')">
                   <ng-icon name="lucideInfo" />
                   How credits work

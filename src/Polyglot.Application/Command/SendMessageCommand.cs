@@ -288,7 +288,7 @@ namespace Polyglot.Application.Command
 
             return new PreflightResult
             {
-                Context = new PreflightContext(chat, model, user, userMessage, messages, nextSequence, newAttachments)
+                Context = new PreflightContext(chat, model, user, userMessage, messages, nextSequence, newAttachments, settings.DefaultImageModel)
             };
         }
 
@@ -399,13 +399,17 @@ namespace Polyglot.Application.Command
         // back via addCost for credit billing.
         private AIFunction CreateImageGenerationTool(PreflightContext ctx, List<Attachment> generatedImages, Action<decimal> addCost)
         {
-            var imageModel = string.IsNullOrWhiteSpace(ctx.User.Preferences?.PreferredImageModel)
-                ? configuration["ImageGen:DefaultModel"] ?? FallbackImageModel
-                : ctx.User.Preferences!.PreferredImageModel!;
+            var imageModel = !string.IsNullOrWhiteSpace(ctx.User.Preferences?.PreferredImageModel)
+                ? ctx.User.Preferences!.PreferredImageModel!
+                : !string.IsNullOrWhiteSpace(ctx.AdminDefaultImageModel)
+                    ? ctx.AdminDefaultImageModel!
+                    : configuration["ImageGen:DefaultModel"] ?? FallbackImageModel;
 
             return AIFunctionFactory.Create(
                 async ([Description("A detailed description of the image to generate.")] string prompt, CancellationToken ct) =>
                 {
+                    if (ctx.User.CreditBalance <= 0)
+                        return "Insufficient credits to generate an image.";
                     try
                     {
                         var image = await openRouterClient.GenerateImageAsync(imageModel, prompt, ct);
@@ -473,6 +477,7 @@ namespace Polyglot.Application.Command
             Message UserMessage,
             List<ChatMessage> Messages,
             int UserSequence,
-            List<Attachment> NewAttachments);
+            List<Attachment> NewAttachments,
+            string? AdminDefaultImageModel);
     }
 }

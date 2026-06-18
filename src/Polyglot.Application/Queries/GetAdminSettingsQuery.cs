@@ -20,6 +20,7 @@ namespace Polyglot.Application.Queries
                 StartingBalance = settings.StartingBalance,
                 CostMultiplier = settings.CostMultiplier,
                 CreditsPerUsd = settings.CreditsPerUsd,
+                DefaultImageModel = settings.DefaultImageModel,
             });
         }
     }

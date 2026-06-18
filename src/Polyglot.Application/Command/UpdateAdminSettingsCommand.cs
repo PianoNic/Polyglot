@@ -12,7 +12,8 @@ namespace Polyglot.Application.Command
         ModelListMode ActiveModelListMode,
         long StartingBalance,
         decimal CostMultiplier,
-        decimal CreditsPerUsd) : ICommand<Result<AdminSettingsDto>>;
+        decimal CreditsPerUsd,
+        string? DefaultImageModel) : ICommand<Result<AdminSettingsDto>>;
 
     public class UpdateAdminSettingsCommandHandler(PolyglotDbContext dbContext) : ICommandHandler<UpdateAdminSettingsCommand, Result<AdminSettingsDto>>
     {
@@ -31,6 +32,7 @@ namespace Polyglot.Application.Command
             settings.StartingBalance = command.StartingBalance;
             settings.CostMultiplier = command.CostMultiplier;
             settings.CreditsPerUsd = command.CreditsPerUsd;
+            settings.DefaultImageModel = string.IsNullOrWhiteSpace(command.DefaultImageModel) ? null : command.DefaultImageModel.Trim();
 
             await dbContext.SaveChangesAsync(cancellationToken);
 
@@ -41,6 +43,7 @@ namespace Polyglot.Application.Command
                 StartingBalance = settings.StartingBalance,
                 CostMultiplier = settings.CostMultiplier,
                 CreditsPerUsd = settings.CreditsPerUsd,
+                DefaultImageModel = settings.DefaultImageModel,
             });
         }
     }

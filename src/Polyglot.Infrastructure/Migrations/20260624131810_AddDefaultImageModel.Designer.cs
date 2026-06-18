@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Polyglot.Infrastructure;
@@ -12,9 +13,11 @@ using Polyglot.Infrastructure;
 namespace Polyglot.Infrastructure.Migrations
 {
     [DbContext(typeof(PolyglotDbContext))]
-    partial class PolyglotDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260624131810_AddDefaultImageModel")]
+    partial class AddDefaultImageModel
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -314,20 +317,6 @@ namespace Polyglot.Infrastructure.Migrations
                     b.ToTable("ModelListEntries");
                 });
 
-            modelBuilder.Entity("Polyglot.Domain.StripeEvent", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<DateTime>("ProcessedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("StripeEvents");
-                });
-
             modelBuilder.Entity("Polyglot.Domain.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -366,10 +355,6 @@ namespace Polyglot.Infrastructure.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
-                    b.Property<string>("StripeCustomerId")
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -377,8 +362,6 @@ namespace Polyglot.Infrastructure.Migrations
 
                     b.HasIndex("ExternalId")
                         .IsUnique();
-
-                    b.HasIndex("StripeCustomerId");
 
                     b.ToTable("Users");
                 });

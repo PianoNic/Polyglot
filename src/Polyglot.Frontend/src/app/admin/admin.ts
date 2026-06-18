@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NgIcon, provideIcons } from '@ng-icons/core';
@@ -23,6 +23,7 @@ type SettingsDraft = {
   startingBalance: number;
   costMultiplier: number;
   creditsPerUsd: number;
+  defaultImageModel: string | null;
 };
 
 @Component({
@@ -64,7 +65,13 @@ export class Admin implements OnInit {
     startingBalance: 0,
     costMultiplier: 1,
     creditsPerUsd: 10000,
+    defaultImageModel: null,
   });
+
+  // Image-capable models, for the default image-generation model setting.
+  protected readonly imageModels = computed(() =>
+    this.store.allModels().filter((m) => m.outputModalities?.includes('image')),
+  );
 
   ngOnInit(): void {
     void this.store.loadUsers();
@@ -78,6 +85,7 @@ export class Admin implements OnInit {
           startingBalance: s.startingBalance,
           costMultiplier: s.costMultiplier,
           creditsPerUsd: s.creditsPerUsd,
+          defaultImageModel: s.defaultImageModel ?? null,
         });
       }
     });
@@ -126,6 +134,7 @@ export class Admin implements OnInit {
         startingBalance: Number(draft.startingBalance),
         costMultiplier: Number(draft.costMultiplier),
         creditsPerUsd: Number(draft.creditsPerUsd),
+        defaultImageModel: draft.defaultImageModel || null,
       }),
     );
   }

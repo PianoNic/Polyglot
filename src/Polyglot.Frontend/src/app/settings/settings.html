@@ -1,0 +1,25 @@
+<section class="flex min-h-0 flex-1 flex-col overflow-hidden">
+  <polyglot-content-header>
+    <span slot="left" class="text-sm font-medium">Settings</span>
+  </polyglot-content-header>
+
+  <div class="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+    <div class="mx-auto grid w-full max-w-xl gap-2">
+      <label hlmLabel class="grid gap-1 text-xs">
+        Image generation model
+        <hlm-native-select
+          [ngModel]="userStore.currentUser()?.preferredImageModel ?? ''"
+          (ngModelChange)="setImageModel($event)"
+        >
+          <option hlmNativeSelectOption value="">Default</option>
+          @for (m of imageModels(); track m.id) {
+            <option hlmNativeSelectOption [value]="m.id">{{ m.name }}</option>
+          }
+        </hlm-native-select>
+      </label>
+      <p class="text-muted-foreground text-xs">
+        Used by the image-generation tool when you ask for an image. Leave on Default to use the server default.
+      </p>
+    </div>
+  </div>
+</section>

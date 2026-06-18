@@ -39,6 +39,11 @@ export const UserStore = signalStore(
       patchState(store, { currentUser: me, loaded: true });
     }
 
+    async function reload(): Promise<void> {
+      const me = await firstValueFrom(userService.apiUserMeGet());
+      patchState(store, { currentUser: me, loaded: true });
+    }
+
     async function setPreferredImageModel(modelId: string | null): Promise<void> {
       const updated = await firstValueFrom(
         userService.apiUserPreferencesPut({ preferredImageModel: modelId }),
@@ -46,7 +51,7 @@ export const UserStore = signalStore(
       patchState(store, { currentUser: updated });
     }
 
-    return { load, setPreferredImageModel };
+    return { load, reload, setPreferredImageModel };
   }),
   withHooks(() => ({})),
 );

@@ -9,4 +9,5 @@ public record AdminSettingsDto
     public required long StartingBalance { get; init; }
     public required decimal CostMultiplier { get; init; }
     public required decimal CreditsPerUsd { get; init; }
+    public string? DefaultImageModel { get; init; }
 }

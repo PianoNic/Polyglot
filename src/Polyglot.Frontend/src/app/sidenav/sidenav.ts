@@ -16,6 +16,7 @@ import {
   lucideMonitor,
   lucideSquarePen,
   lucidePlug,
+  lucideSettings,
 } from '@ng-icons/lucide';
 import { ThemeService, ThemeMode } from '../shared/services/theme.service';
 import { HlmSidebarImports, HlmSidebarService } from '@spartan-ng/helm/sidebar';
@@ -54,6 +55,7 @@ import type { ConversationRename } from '../../../libs/prompt-kit/conversation-l
       lucideMonitor,
       lucideSquarePen,
       lucidePlug,
+      lucideSettings,
     }),
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,

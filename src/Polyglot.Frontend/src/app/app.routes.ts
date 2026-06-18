@@ -13,6 +13,8 @@ export const routes: Routes = [
       { path: 'chat', component: Chat },
       { path: 'chat/:id', component: Chat },
       { path: 'mcp', loadComponent: () => import('./mcp/mcp').then((m) => m.Mcp) },
+      { path: 'settings', loadComponent: () => import('./settings/settings').then((m) => m.Settings) },
+      { path: 'billing', loadComponent: () => import('./billing/billing').then((m) => m.Billing) },
       { path: 'admin', loadComponent: () => import('./admin/admin').then((m) => m.Admin) },
     ],
   },
