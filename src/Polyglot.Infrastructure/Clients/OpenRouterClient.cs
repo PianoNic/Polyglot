@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Polyglot.Infrastructure.Dtos;
+using System.Globalization;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
@@ -33,8 +34,8 @@ namespace Polyglot.Infrastructure.Clients
                     : [];
 
                 var pricing = model.GetProperty("pricing");
-                var promptPrice = decimal.Parse(pricing.GetProperty("prompt").GetString() ?? "0") * 1_000_000;
-                var completionPrice = decimal.Parse(pricing.GetProperty("completion").GetString() ?? "0") * 1_000_000;
+                var promptPrice = decimal.Parse(pricing.GetProperty("prompt").GetString() ?? "0", CultureInfo.InvariantCulture) * 1_000_000;
+                var completionPrice = decimal.Parse(pricing.GetProperty("completion").GetString() ?? "0", CultureInfo.InvariantCulture) * 1_000_000;
 
                 var slashIndex = id.IndexOf('/');
                 var provider = slashIndex > 0 ? id[..slashIndex] : string.Empty;
