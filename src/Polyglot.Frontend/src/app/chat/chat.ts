@@ -1,4 +1,15 @@
-import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, OnInit, signal, untracked, viewChild } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  ElementRef,
+  inject,
+  OnInit,
+  signal,
+  untracked,
+  viewChild,
+} from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -18,7 +29,6 @@ import {
 } from '@ng-icons/lucide';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmIcon } from '@spartan-ng/helm/icon';
-import { HlmPopoverImports } from '@spartan-ng/helm/popover';
 import { MessageRole } from '../api/model/messageRole';
 import type { AttachmentDto } from '../api/model/attachmentDto';
 import type { MessageDto } from '../api/model/messageDto';
@@ -26,14 +36,13 @@ import { BASE_PATH } from '../api/variables';
 import { ContentHeader } from '../shared/components/content-header/content-header';
 import { PkAttachmentChip } from '../../../libs/prompt-kit/attachment-preview';
 import type { Attachment } from '../../../libs/prompt-kit/attachment-preview';
-import { PkChainOfThoughtImports } from '../../../libs/prompt-kit/chain-of-thought';
 import { PkChatContainerImports } from '../../../libs/prompt-kit/chat-container';
-import { PkCodeBlockImports } from '../../../libs/prompt-kit/code-block';
 import { PkChatEmpty } from '../../../libs/prompt-kit/chat-empty/pk-chat-empty';
+import { PkToolStepsImports, type PkToolStep } from '../../../libs/prompt-kit/tool-steps';
 import type { ChatEmptySuggestion } from '../../../libs/prompt-kit/chat-empty/pk-chat-empty';
 import { PkLoader } from '../../../libs/prompt-kit/loader/pk-loader';
 import { PkMessageImports } from '../../../libs/prompt-kit/message';
-import { PkModelList } from '../../../libs/prompt-kit/model-list/pk-model-list';
+import { PkModelPickerImports } from '../../../libs/prompt-kit/model-picker';
 import { PkPromptInputImports } from '../../../libs/prompt-kit/prompt-input';
 import { PkResponseStream } from '../../../libs/prompt-kit/response-stream';
 import { PkScrollButton } from '../../../libs/prompt-kit/scroll-button/pk-scroll-button';
@@ -59,17 +68,15 @@ const SUGGESTIONS: ChatEmptySuggestion[] = [
     HlmButton,
     HlmIcon,
     AuthImage,
-    PkChainOfThoughtImports,
     PkChatContainerImports,
-    PkCodeBlockImports,
+    PkToolStepsImports,
     PkChatEmpty,
     PkLoader,
     PkMessageImports,
-    PkModelList,
+    PkModelPickerImports,
     PkAttachmentChip,
     PkPromptInputImports,
     PkResponseStream,
-    HlmPopoverImports,
     ContentHeader,
     PkScrollButton,
     PkSystemMessage,
@@ -110,13 +117,6 @@ export class Chat implements OnInit {
   private readonly lastFailed = signal<string | null>(null);
   protected readonly suggestions = SUGGESTIONS;
   protected readonly inputLimit = 4000;
-  protected readonly modelMenuState = signal<'open' | 'closed'>('closed');
-
-  protected readonly activeModelLabel = computed(() => {
-    const id = this.store.selectedModelId();
-    if (!id) return 'Select model';
-    return this.store.models().find((m) => m.id === id)?.name ?? id;
-  });
 
   protected readonly hasMessages = computed(() => this.store.messages().length > 0);
   protected readonly canSend = computed(() => {
@@ -149,7 +149,6 @@ export class Chat implements OnInit {
         }
       });
     });
-
   }
 
   ngOnInit(): void {
@@ -160,7 +159,6 @@ export class Chat implements OnInit {
   protected onModelChanged(id: string | null): void {
     if (id) {
       this.store.setSelectedModel(id);
-      this.modelMenuState.set('closed');
     }
   }
 
@@ -186,8 +184,7 @@ export class Chat implements OnInit {
 
   protected async retry(): Promise<void> {
     const text = this.lastFailed();
-    if (!text)
-      return;
+    if (!text) return;
     this.store.clearSendError();
     this.draft.set(text);
     await this.onSubmit();
@@ -208,7 +205,7 @@ export class Chat implements OnInit {
   /** Parsed Message.toolCalls JSON, cached per message id. */
   private readonly toolStepsCache = new Map<string, ToolStep[]>();
 
-  protected toolSteps(m: MessageDto): ToolStep[] {
+  private toolSteps(m: MessageDto): ToolStep[] {
     if (!m.toolCalls) return [];
     let steps = this.toolStepsCache.get(m.id);
     if (!steps) {
@@ -223,7 +220,7 @@ export class Chat implements OnInit {
   }
 
   /** The executed code for execute_javascript steps, else the raw input JSON. */
-  protected toolInput(step: ToolStep): string {
+  private toolInput(step: ToolStep): string {
     try {
       const args = JSON.parse(step.input) as Record<string, unknown>;
       if (typeof args['code'] === 'string') return args['code'];
@@ -232,6 +229,20 @@ export class Chat implements OnInit {
     }
     return step.input;
   }
+
+  private toPkSteps(steps: ToolStep[]): PkToolStep[] {
+    return steps.map((s) => ({ name: s.name, input: this.toolInput(s), output: s.output }));
+  }
+
+  /** Tool steps for a committed message, mapped for <pk-tool-steps>. */
+  protected pkSteps(m: MessageDto): PkToolStep[] {
+    return this.toPkSteps(this.toolSteps(m));
+  }
+
+  /** Tool steps for the in-flight streaming message. */
+  protected readonly pkStreamSteps = computed<PkToolStep[]>(() =>
+    this.toPkSteps(this.store.streamToolSteps()),
+  );
 
   protected asChip(a: AttachmentDto): Attachment {
     return {

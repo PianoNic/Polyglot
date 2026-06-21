@@ -1,11 +1,5 @@
 import { computed, inject } from '@angular/core';
-import {
-  HttpErrorResponse,
-  HttpEventType,
-  type HttpDownloadProgressEvent,
-  type HttpEvent,
-  type HttpResponse,
-} from '@angular/common/http';
+import { type HttpEvent } from '@angular/common/http';
 import { firstValueFrom, type Observable } from 'rxjs';
 import {
   patchState,
@@ -26,12 +20,15 @@ import type { MessageDto } from '../../api/model/messageDto';
 import type { SendMessageDto } from '../../api/model/sendMessageDto';
 import { MessageRole } from '../../api/model/messageRole';
 import type { Conversation } from '../../../../libs/prompt-kit/conversation-list/pk-conversation-types';
+import { readSseHttpEvents } from '../../../../libs/prompt-kit/streaming';
+import { describeHttpError } from '../../../../libs/prompt-kit/http-error';
 
 const SELECTED_MODEL_KEY = 'polyglot.selectedModel';
 
-export type SendResult =
-  | { kind: 'sent'; newId: string | null }
-  | { kind: 'error'; error: string };
+/** Polyglot-specific copy for 402/403 (credits/model authorization). */
+const ERROR_MESSAGES = { forbidden: 'Out of credits or not authorized for this model.' } as const;
+
+export type SendResult = { kind: 'sent'; newId: string | null } | { kind: 'error'; error: string };
 
 /** One tool invocation in the assistant's chain of thought. Matches the
  *  camelCase JSON persisted on MessageDto.toolCalls. */
@@ -110,22 +107,17 @@ export const ChatStore = signalStore(
     let pendingStream: { response: SendMessageDto; optimisticId: string } | null = null;
 
     function touchChat(id: string | null): void {
-      if (!id)
-        return;
+      if (!id) return;
       const list = store.chats();
-      if (!list.some((c) => c.id === id))
-        return;
+      if (!list.some((c) => c.id === id)) return;
       const now = new Date();
       patchState(store, {
-        chats: list
-          .map((c) => (c.id === id ? { ...c, updatedAt: now } : c))
-          .sort(byUpdatedDesc),
+        chats: list.map((c) => (c.id === id ? { ...c, updatedAt: now } : c)).sort(byUpdatedDesc),
       });
     }
 
     async function loadChats(force = false): Promise<void> {
-      if (store.chatsLoaded() && !force)
-        return;
+      if (store.chatsLoaded() && !force) return;
       patchState(store, { chatsLoaded: true });
       try {
         const list = await firstValueFrom(chatApi.apiChatGet());
@@ -148,8 +140,7 @@ export const ChatStore = signalStore(
     }
 
     async function loadModels(): Promise<void> {
-      if (store.modelsLoaded())
-        return;
+      if (store.modelsLoaded()) return;
       patchState(store, { modelsLoaded: true });
       try {
         const list = await firstValueFrom(modelApi.apiModelListGet());
@@ -164,17 +155,19 @@ export const ChatStore = signalStore(
     }
 
     function openChat(id: string): Promise<void> {
-      if (inFlight?.id === id)
-        return inFlight.promise;
-      if (store.activeChatId() === id && !inFlight)
-        return Promise.resolve();
+      if (inFlight?.id === id) return inFlight.promise;
+      if (store.activeChatId() === id && !inFlight) return Promise.resolve();
 
-      patchState(store, { activeChatId: id, activeChatTitle: null, messages: [], isLoadingChat: true });
+      patchState(store, {
+        activeChatId: id,
+        activeChatTitle: null,
+        messages: [],
+        isLoadingChat: true,
+      });
       const promise = (async () => {
         try {
           const detail = await firstValueFrom(chatApi.apiChatIdGet(id));
-          if (inFlight?.id !== id)
-            return;
+          if (inFlight?.id !== id) return;
           patchState(store, { messages: detail.messages, activeChatTitle: detail.title });
         } finally {
           if (inFlight?.id === id) {
@@ -188,8 +181,7 @@ export const ChatStore = signalStore(
     }
 
     function newChat(): void {
-      if (store.activeChatId() === null && store.messages().length === 0 && !inFlight)
-        return;
+      if (store.activeChatId() === null && store.messages().length === 0 && !inFlight) return;
       patchState(store, { activeChatId: null, activeChatTitle: null, messages: [] });
       inFlight = null;
     }
@@ -197,8 +189,7 @@ export const ChatStore = signalStore(
     async function sendMessage(text: string): Promise<SendResult> {
       const trimmed = text.trim();
       const model = store.selectedModelId();
-      if (!trimmed || !model)
-        return { kind: 'error', error: 'Pick a model and type a message.' };
+      if (!trimmed || !model) return { kind: 'error', error: 'Pick a model and type a message.' };
       if (store.isSending() || store.streamingText())
         return { kind: 'error', error: 'A message is already being sent.' };
 
@@ -255,10 +246,13 @@ export const ChatStore = signalStore(
         // commitStream() (wired to pk-response-stream's `finished` output)
         // performs the actual swap.
         pendingStream = { response, optimisticId: optimistic.id };
-        patchState(store, { activeChatTitle: response.chatTitle, isSending: false, streamDone: true });
+        patchState(store, {
+          activeChatTitle: response.chatTitle,
+          isSending: false,
+          streamDone: true,
+        });
 
-        if (!store.streamingText())
-          commitStream();
+        if (!store.streamingText()) commitStream();
 
         if (response.chatId !== store.activeChatId()) {
           patchState(store, { activeChatId: response.chatId });
@@ -268,7 +262,7 @@ export const ChatStore = signalStore(
         touchChat(store.activeChatId());
         return { kind: 'sent', newId: null };
       } catch (err) {
-        const message = describeError(err);
+        const message = describeHttpError(err, ERROR_MESSAGES);
         pendingStream = null;
         patchState(store, {
           messages: store.messages().filter((m) => m.id !== optimistic.id),
@@ -284,8 +278,7 @@ export const ChatStore = signalStore(
     }
 
     function commitStream(): void {
-      if (!pendingStream)
-        return;
+      if (!pendingStream) return;
       const { response, optimisticId } = pendingStream;
       pendingStream = null;
       patchState(store, {
@@ -309,7 +302,7 @@ export const ChatStore = signalStore(
         const dto = await firstValueFrom(attachmentApi.apiAttachmentPost(file));
         patchState(store, (state) => ({ pendingAttachments: [...state.pendingAttachments, dto] }));
       } catch (err) {
-        patchState(store, { sendError: describeError(err) });
+        patchState(store, { sendError: describeHttpError(err, ERROR_MESSAGES) });
       }
     }
 
@@ -322,8 +315,7 @@ export const ChatStore = signalStore(
     async function renameChat(id: string, title: string): Promise<void> {
       await firstValueFrom(chatApi.apiChatIdPut(id, { title }));
       const list = store.chats();
-      if (!list.some((c) => c.id === id))
-        return;
+      if (!list.some((c) => c.id === id)) return;
       const now = new Date();
       patchState(store, {
         chats: list.map((c) => (c.id === id ? { ...c, title, updatedAt: now } : c)),
@@ -334,10 +326,8 @@ export const ChatStore = signalStore(
     async function deleteChat(id: string): Promise<void> {
       await firstValueFrom(chatApi.apiChatIdDelete(id));
       patchState(store, { chats: store.chats().filter((c) => c.id !== id) });
-      if (inFlight?.id === id)
-        inFlight = null;
-      if (store.activeChatId() === id)
-        newChat();
+      if (inFlight?.id === id) inFlight = null;
+      if (store.activeChatId() === id) newChat();
     }
 
     return {
@@ -370,100 +360,40 @@ interface StreamHandlers {
 }
 
 /**
- * Consumes the SSE stream from POST /api/Chat. The generated client requests
- * `text/event-stream` with `responseType: 'text'`, so progress events carry the
- * cumulative raw body; complete frames are parsed out as they arrive.
+ * Consumes the SSE stream from POST /api/Chat using ngx-prompt-kit's
+ * readSseHttpEvents() helper (frame buffering + cumulative partialText handling),
+ * dispatching each frame to the handlers and resolving with the Done payload.
  */
-function streamSend(
+async function streamSend(
   events$: Observable<HttpEvent<ChatStreamPayload>>,
   handlers: StreamHandlers,
 ): Promise<SendMessageDto> {
-  return new Promise((resolve, reject) => {
-    let parsedUpTo = 0;
-    let buffer = '';
-    let result: SendMessageDto | null = null;
-    let failed: string | null = null;
+  let result: SendMessageDto | null = null;
+  let failed: string | null = null;
 
-    function ingest(cumulativeText: string): void {
-      buffer += cumulativeText.slice(parsedUpTo).replace(/\r\n/g, '\n');
-      parsedUpTo = cumulativeText.length;
-      buffer = consumeSseFrames(buffer, (data) => {
-        // The discriminator lives in the payload (not the SSE event name) so
-        // the same handling works over any transport, e.g. WebSockets.
-        const payload = JSON.parse(data) as ChatStreamPayload;
-        if (payload.type === ChatStreamPayloadType.Chunk && payload.text) {
-          handlers.onToken(payload.text);
-        } else if (payload.type === ChatStreamPayloadType.ToolCall && payload.toolName) {
-          handlers.onToolCall(payload.toolName, payload.toolInput ?? '');
-        } else if (payload.type === ChatStreamPayloadType.ToolResult && payload.toolName) {
-          handlers.onToolResult(payload.toolName, payload.toolOutput ?? '');
-        } else if (payload.type === ChatStreamPayloadType.Done && payload.result) {
-          result = payload.result;
-        } else if (payload.type === ChatStreamPayloadType.Error) {
-          failed = payload.error ?? 'Send failed.';
-        }
-      });
+  await readSseHttpEvents(events$, (data) => {
+    // The discriminator lives in the payload (not the SSE event name) so the
+    // same handling works over any transport, e.g. WebSockets.
+    const payload = JSON.parse(data) as ChatStreamPayload;
+    if (payload.type === ChatStreamPayloadType.Chunk && payload.text) {
+      handlers.onToken(payload.text);
+    } else if (payload.type === ChatStreamPayloadType.ToolCall && payload.toolName) {
+      handlers.onToolCall(payload.toolName, payload.toolInput ?? '');
+    } else if (payload.type === ChatStreamPayloadType.ToolResult && payload.toolName) {
+      handlers.onToolResult(payload.toolName, payload.toolOutput ?? '');
+    } else if (payload.type === ChatStreamPayloadType.Done && payload.result) {
+      result = payload.result;
+    } else if (payload.type === ChatStreamPayloadType.Error) {
+      failed = payload.error ?? 'Send failed.';
     }
-
-    events$.subscribe({
-      next: (event) => {
-        if (event.type === HttpEventType.DownloadProgress) {
-          ingest((event as HttpDownloadProgressEvent).partialText ?? '');
-        } else if (event.type === HttpEventType.Response) {
-          ingest(((event as HttpResponse<unknown>).body as string | null) ?? '');
-          if (failed)
-            reject(new Error(failed));
-          else if (result)
-            resolve(result);
-          else
-            reject(new Error('The stream ended unexpectedly.'));
-        }
-      },
-      error: (err) => reject(err),
-    });
   });
-}
 
-function consumeSseFrames(
-  buffer: string,
-  handle: (data: string) => void,
-): string {
-  let separatorIndex = buffer.indexOf('\n\n');
-  while (separatorIndex !== -1) {
-    const rawFrame = buffer.slice(0, separatorIndex);
-    buffer = buffer.slice(separatorIndex + 2);
-    const dataLines: string[] = [];
-    for (const line of rawFrame.split('\n')) {
-      if (line.startsWith('data:'))
-        dataLines.push(line.slice(line.startsWith('data: ') ? 'data: '.length : 'data:'.length));
-    }
-    if (dataLines.length > 0)
-      handle(dataLines.join('\n'));
-    separatorIndex = buffer.indexOf('\n\n');
-  }
-  return buffer;
-}
-
-function describeError(err: unknown): string {
-  if (err instanceof HttpErrorResponse) {
-    if (err.status === 0)
-      return 'Network error. Check your connection and try again.';
-    if (err.status === 401)
-      return 'Your session expired. Sign in again to continue.';
-    if (err.status === 402 || err.status === 403)
-      return 'Out of credits or not authorized for this model.';
-    if (err.status === 429)
-      return 'Rate limited. Please wait a moment and retry.';
-    if (err.status >= 500)
-      return 'The server hit an error. Try again in a moment.';
-    const detail = (err.error as { detail?: string; title?: string } | null) ?? null;
-    return detail?.detail ?? detail?.title ?? err.message ?? 'Request failed.';
-  }
-  return err instanceof Error ? err.message : 'Something went wrong.';
+  if (failed) throw new Error(failed);
+  if (!result) throw new Error('The stream ended unexpectedly.');
+  return result;
 }
 
 function readPersistedModel(): string | null {
-  if (typeof localStorage === 'undefined')
-    return null;
+  if (typeof localStorage === 'undefined') return null;
   return localStorage.getItem(SELECTED_MODEL_KEY);
 }

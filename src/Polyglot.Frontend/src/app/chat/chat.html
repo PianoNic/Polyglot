@@ -1,31 +1,14 @@
 <section class="flex min-h-0 flex-1 flex-col overflow-hidden">
   <polyglot-content-header>
-    <hlm-popover
+    <pk-model-picker
       slot="left"
-      sideOffset="6"
-      [state]="modelMenuState()"
-      (stateChanged)="modelMenuState.set($event)"
-    >
-      <button
-        hlmBtn
-        variant="outline"
-        size="sm"
-        type="button"
-        hlmPopoverTrigger
-        class="justify-between gap-2"
-      >
-        <span [class.text-muted-foreground]="!store.selectedModelId()">{{ activeModelLabel() }}</span>
-        <ng-icon hlm size="xs" name="lucideChevronDown" />
-      </button>
-      <hlm-popover-content class="w-80 p-0" *hlmPopoverPortal>
-        <pk-model-list
-          [models]="store.models()"
-          [selectedId]="store.selectedModelId()"
-          (changed)="onModelChanged($event.id)"
-          searchPlaceholder="Search models..."
-        />
-      </hlm-popover-content>
-    </hlm-popover>
+      [compact]="true"
+      [searchable]="true"
+      [models]="store.models()"
+      [selectedId]="store.selectedModelId()"
+      (changed)="onModelChanged($event.id)"
+      searchPlaceholder="Search models..."
+    />
     <div slot="right" class="contents">
       <span class="text-muted-foreground truncate text-xs">
         {{ store.activeChatTitle() ?? 'New chat' }}
@@ -55,7 +38,11 @@
               @if (m.attachments.length > 0) {
                 <div class="mb-1 flex flex-wrap justify-end gap-2">
                   @for (a of m.attachments; track a.id) {
-                    <pk-attachment-chip [attachment]="asChip(a)" [removable]="false" (clicked)="openAttachment($event)" />
+                    <pk-attachment-chip
+                      [attachment]="asChip(a)"
+                      [removable]="false"
+                      (clicked)="openAttachment($event)"
+                    />
                   }
                 </div>
               }
@@ -68,39 +55,23 @@
             <pk-message class="max-w-[85%] self-start">
               <pk-message-avatar src="" alt="Assistant" fallback="AI" />
               <div class="flex min-w-0 flex-col gap-2">
-                @if (toolSteps(m); as steps) {
-                  @if (steps.length > 0) {
-                    <pk-chain-of-thought>
-                      @for (s of steps; track $index; let isLast = $last) {
-                        <pk-chain-of-thought-step [last]="isLast">
-                          <pk-chain-of-thought-trigger>Ran {{ s.name }}</pk-chain-of-thought-trigger>
-                          <pk-chain-of-thought-content>
-                            <pk-chain-of-thought-item>
-                              <pk-code-block>
-                                <pk-code-block-code [code]="toolInput(s)" language="javascript" />
-                              </pk-code-block>
-                            </pk-chain-of-thought-item>
-                            @if (s.output !== null) {
-                              <pk-chain-of-thought-item>
-                                <pk-code-block>
-                                  <pk-code-block-code [code]="s.output" language="text" />
-                                </pk-code-block>
-                              </pk-chain-of-thought-item>
-                            }
-                          </pk-chain-of-thought-content>
-                        </pk-chain-of-thought-step>
-                      }
-                    </pk-chain-of-thought>
-                  }
-                }
-                <pk-message-content [markdown]="true" [content]="m.content" class="bg-transparent p-0" />
+                <pk-tool-steps [steps]="pkSteps(m)" />
+                <pk-message-content
+                  [markdown]="true"
+                  [content]="m.content"
+                  class="bg-transparent p-0"
+                />
                 @if (m.attachments.length > 0) {
                   <div class="flex flex-wrap gap-2">
                     @for (a of m.attachments; track a.id) {
                       @if (a.mediaType.startsWith('image/')) {
                         <polyglot-auth-image [attachmentId]="a.id" [alt]="a.fileName" />
                       } @else {
-                        <pk-attachment-chip [attachment]="asChip(a)" [removable]="false" (clicked)="openAttachment($event)" />
+                        <pk-attachment-chip
+                          [attachment]="asChip(a)"
+                          [removable]="false"
+                          (clicked)="openAttachment($event)"
+                        />
                       }
                     }
                   </div>
@@ -113,31 +84,7 @@
           <pk-message class="max-w-[85%] self-start">
             <pk-message-avatar src="" alt="Assistant" fallback="AI" />
             <div class="flex min-w-0 flex-col gap-2">
-              @if (store.streamToolSteps().length > 0) {
-                <pk-chain-of-thought>
-                  @for (s of store.streamToolSteps(); track $index; let isLast = $last) {
-                    <pk-chain-of-thought-step [last]="isLast">
-                      <pk-chain-of-thought-trigger>
-                        {{ s.output === null ? 'Running' : 'Ran' }} {{ s.name }}
-                      </pk-chain-of-thought-trigger>
-                      <pk-chain-of-thought-content>
-                        <pk-chain-of-thought-item>
-                          <pk-code-block>
-                            <pk-code-block-code [code]="toolInput(s)" language="javascript" />
-                          </pk-code-block>
-                        </pk-chain-of-thought-item>
-                        @if (s.output !== null) {
-                          <pk-chain-of-thought-item>
-                            <pk-code-block>
-                              <pk-code-block-code [code]="s.output" language="text" />
-                            </pk-code-block>
-                          </pk-chain-of-thought-item>
-                        }
-                      </pk-chain-of-thought-content>
-                    </pk-chain-of-thought-step>
-                  }
-                </pk-chain-of-thought>
-              }
+              <pk-tool-steps [steps]="pkStreamSteps()" />
               @if (store.streamingText()) {
                 <pk-message-content class="bg-transparent p-0">
                   <pk-response-stream
@@ -200,7 +147,14 @@
         <pk-prompt-input-actions class="mt-2 justify-between">
           <div class="flex items-center gap-1">
             <pk-prompt-input-action tooltip="Attach files">
-              <button hlmBtn variant="ghost" size="icon-sm" type="button" aria-label="Attach files" (click)="openFilePicker()">
+              <button
+                hlmBtn
+                variant="ghost"
+                size="icon-sm"
+                type="button"
+                aria-label="Attach files"
+                (click)="openFilePicker()"
+              >
                 <ng-icon hlm size="sm" name="lucidePaperclip" />
               </button>
             </pk-prompt-input-action>
@@ -228,7 +182,14 @@
               </button>
             </pk-prompt-input-action>
             <pk-prompt-input-action tooltip="Voice input">
-              <button hlmBtn variant="ghost" size="icon-sm" type="button" aria-label="Voice input" disabled>
+              <button
+                hlmBtn
+                variant="ghost"
+                size="icon-sm"
+                type="button"
+                aria-label="Voice input"
+                disabled
+              >
                 <ng-icon hlm size="sm" name="lucideMic" />
               </button>
             </pk-prompt-input-action>
