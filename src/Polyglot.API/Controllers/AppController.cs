@@ -23,13 +23,5 @@ namespace Polyglot.API.Controllers
 
             return BadRequest(result.Error);
         }
-
-        [HttpGet("Test", Name = "TestEndpointWithAuth")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> Test(CancellationToken cancellationToken)
-        {
-            return Ok();
-        }
     }
 }

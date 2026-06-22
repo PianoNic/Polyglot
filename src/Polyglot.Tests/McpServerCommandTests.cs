@@ -77,6 +77,35 @@ public class McpServerCommandTests
     }
 
     [Test]
+    public async Task Create_CloudMetadataUrl_Fails()
+    {
+        var db = CreateDb();
+        var user = await SeedUser(db, UserRole.User);
+
+        var result = await CreateHandler(db, user.Id).Handle(
+            new CreateMcpServerCommand("Meta", "http://169.254.169.254/latest/meta-data", McpTransportMode.Auto, null, true, Global: false),
+            CancellationToken.None);
+
+        await Assert.That(result.IsFailure).IsTrue();
+        await Assert.That(result.Error).Contains("public host");
+        await Assert.That(await db.McpServers.AnyAsync()).IsFalse();
+    }
+
+    [Test]
+    public async Task Create_LoopbackUrl_Fails()
+    {
+        var db = CreateDb();
+        var user = await SeedUser(db, UserRole.User);
+
+        var result = await CreateHandler(db, user.Id).Handle(
+            new CreateMcpServerCommand("Local", "http://127.0.0.1:5432", McpTransportMode.Auto, null, true, Global: false),
+            CancellationToken.None);
+
+        await Assert.That(result.IsFailure).IsTrue();
+        await Assert.That(result.Error).Contains("public host");
+    }
+
+    [Test]
     public async Task Update_OthersServer_Fails()
     {
         var db = CreateDb();

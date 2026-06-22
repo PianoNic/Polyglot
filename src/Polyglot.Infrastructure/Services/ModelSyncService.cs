@@ -14,12 +14,6 @@ namespace Polyglot.Infrastructure.Services
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             logger.LogInformation("Model Sync Service running.");
-            await DoWork(stoppingToken);
-        }
-
-        private async Task DoWork(CancellationToken stoppingToken)
-        {
-            logger.LogInformation("Model Sync Service is working.");
 
             await SyncAsync(stoppingToken);
 
@@ -98,13 +92,6 @@ namespace Polyglot.Infrastructure.Services
             {
                 logger.LogError(ex, "Model sync failed");
             }
-        }
-
-        public override async Task StopAsync(CancellationToken stoppingToken)
-        {
-            logger.LogInformation("Model Sync Service is stopping.");
-
-            await base.StopAsync(stoppingToken);
         }
     }
 }
