@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  OnInit,
+  signal,
+} from '@angular/core';
+import { toast } from '@spartan-ng/brain/sonner';
 import { CurrencyPipe, DecimalPipe } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { HlmButton } from '@spartan-ng/helm/button';
@@ -20,7 +28,6 @@ export class Billing implements OnInit {
   protected readonly userStore = inject(UserStore);
 
   protected readonly config = signal<BillingConfig | null>(null);
-  protected readonly error = signal<string | null>(null);
   protected readonly pending = signal<string | null>(null);
   protected readonly notice = signal<'success' | 'cancel' | null>(null);
   protected readonly managing = signal(false);
@@ -46,30 +53,28 @@ export class Billing implements OnInit {
     try {
       this.config.set(await this.billing.getConfig());
     } catch {
-      this.error.set('Could not load billing information.');
+      toast.error('Could not load billing information.');
     }
   }
 
   protected async buy(priceId: string): Promise<void> {
-    this.error.set(null);
     this.pending.set(priceId);
     try {
       const session = await this.billing.createCheckout(priceId);
       window.location.href = session.url;
     } catch {
-      this.error.set('Could not start checkout. Please try again.');
+      toast.error('Could not start checkout. Please try again.');
       this.pending.set(null);
     }
   }
 
   protected async manage(): Promise<void> {
-    this.error.set(null);
     this.managing.set(true);
     try {
       const session = await this.billing.createPortalSession();
       window.location.href = session.url;
     } catch {
-      this.error.set('Could not open the billing portal. Please try again.');
+      toast.error('Could not open the billing portal. Please try again.');
       this.managing.set(false);
     }
   }

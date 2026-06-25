@@ -82,3 +82,54 @@
     @apply bg-background text-foreground;
   }
 }
+
+/*
+ * Full-height app shell. Bounds the height chain (viewport → app-root → layout →
+ * sidebar wrapper) so each page's own `overflow-y-auto` content area scrolls
+ * internally instead of the whole page. Unlayered so it wins over Tailwind's
+ * `min-h-svh` on the sidebar wrapper.
+ */
+html,
+body {
+  height: 100%;
+}
+body {
+  overflow: hidden;
+}
+app-root {
+  display: block;
+  height: 100dvh;
+  overflow: hidden;
+}
+polyglot-app-layout,
+polyglot-sidenav {
+  display: block;
+  height: 100%;
+}
+[hlmSidebarWrapper] {
+  height: 100%;
+  min-height: 0;
+}
+
+/* Custom scrollbar — thin, rounded, themed; subtle by default, darker on hover. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--muted-foreground) 35%, transparent) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-track,
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+  background-color: color-mix(in oklab, var(--muted-foreground) 35%, transparent);
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in oklab, var(--muted-foreground) 60%, transparent);
+}

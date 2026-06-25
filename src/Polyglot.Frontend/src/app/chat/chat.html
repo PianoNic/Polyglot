@@ -4,7 +4,7 @@
       slot="left"
       [compact]="true"
       [searchable]="true"
-      [models]="store.models()"
+      [models]="modelsWithIcons()"
       [selectedId]="store.selectedModelId()"
       (changed)="onModelChanged($event.id)"
       searchPlaceholder="Search models..."
@@ -53,8 +53,20 @@
             </pk-message>
           } @else {
             <pk-message class="max-w-[85%] self-start">
-              <pk-message-avatar src="" alt="Assistant" fallback="AI" />
+              <div
+                class="size-8 shrink-0 self-start overflow-hidden rounded-full border bg-white p-1"
+              >
+                <pk-message-avatar
+                  [src]="modelIcon(m)"
+                  [alt]="modelName(m)"
+                  fallback="AI"
+                  class="size-full bg-transparent"
+                />
+              </div>
               <div class="flex min-w-0 flex-col gap-2">
+                <span class="text-muted-foreground flex h-8 items-center text-xs font-medium">{{
+                  modelName(m)
+                }}</span>
                 <pk-tool-steps [steps]="pkSteps(m)" />
                 <pk-message-content
                   [markdown]="true"
@@ -65,7 +77,19 @@
                   <div class="flex flex-wrap gap-2">
                     @for (a of m.attachments; track a.id) {
                       @if (a.mediaType.startsWith('image/')) {
-                        <polyglot-auth-image [attachmentId]="a.id" [alt]="a.fileName" />
+                        <button
+                          type="button"
+                          class="block cursor-pointer"
+                          [attr.aria-label]="'Open ' + a.fileName"
+                          (click)="openAttachment(a.id)"
+                        >
+                          <pk-auth-image
+                            [url]="attachmentUrl(a.id)"
+                            [alt]="a.fileName"
+                            imgClass="max-h-80 max-w-full object-contain"
+                            class="rounded-md border"
+                          />
+                        </button>
                       } @else {
                         <pk-attachment-chip
                           [attachment]="asChip(a)"
@@ -82,13 +106,26 @@
         }
         @if (store.streamingText() || store.streamToolSteps().length > 0) {
           <pk-message class="max-w-[85%] self-start">
-            <pk-message-avatar src="" alt="Assistant" fallback="AI" />
+            <div
+              class="size-8 shrink-0 self-start overflow-hidden rounded-full border bg-white p-1"
+            >
+              <pk-message-avatar
+                [src]="activeModelIcon()"
+                [alt]="activeModelName()"
+                fallback="AI"
+                class="size-full bg-transparent"
+              />
+            </div>
             <div class="flex min-w-0 flex-col gap-2">
+              <span class="text-muted-foreground flex h-8 items-center text-xs font-medium">{{
+                activeModelName()
+              }}</span>
               <pk-tool-steps [steps]="pkStreamSteps()" />
               @if (store.streamingText()) {
                 <pk-message-content class="bg-transparent p-0">
                   <pk-response-stream
                     [textStream]="store.streamingText()"
+                    [markdown]="true"
                     [speed]="10"
                     [adaptive]="true"
                     [done]="store.streamDone()"
@@ -115,16 +152,6 @@
 
   <div class="px-4 py-3">
     <div class="mx-auto w-full max-w-3xl">
-      @if (store.sendError(); as err) {
-        <pk-system-message
-          variant="error"
-          [fill]="true"
-          [text]="err"
-          ctaLabel="Retry"
-          class="mb-2 block"
-          (ctaClicked)="retry()"
-        />
-      }
       @if (store.pendingAttachments().length > 0) {
         <div class="mb-2 flex flex-wrap gap-2">
           @for (a of store.pendingAttachments(); track a.id) {
@@ -146,26 +173,25 @@
         <pk-prompt-input-textarea placeholder="Ask anything..." />
         <pk-prompt-input-actions class="mt-2 justify-between">
           <div class="flex items-center gap-1">
-            <pk-prompt-input-action tooltip="Attach files">
-              <button
-                hlmBtn
-                variant="ghost"
-                size="icon-sm"
-                type="button"
-                aria-label="Attach files"
-                (click)="openFilePicker()"
-              >
-                <ng-icon hlm size="sm" name="lucidePaperclip" />
-              </button>
-            </pk-prompt-input-action>
-            <input
-              #fileInput
-              type="file"
-              class="hidden"
-              multiple
+            <pk-file-upload
+              class="contents"
+              #fileUpload
               [accept]="acceptTypes()"
-              (change)="onFilesSelected($event)"
-            />
+              (filesAdded)="onFiles($event)"
+            >
+              <pk-prompt-input-action tooltip="Attach files">
+                <button
+                  hlmBtn
+                  variant="ghost"
+                  size="icon-sm"
+                  type="button"
+                  aria-label="Attach files"
+                  (click)="fileUpload.openPicker()"
+                >
+                  <ng-icon hlm size="sm" name="lucidePaperclip" />
+                </button>
+              </pk-prompt-input-action>
+            </pk-file-upload>
             <pk-prompt-input-action tooltip="Search the web">
               <button
                 hlmBtn

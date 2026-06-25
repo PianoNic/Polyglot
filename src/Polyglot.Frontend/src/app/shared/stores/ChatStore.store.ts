@@ -7,6 +7,7 @@ import {
   withComputed,
   withHooks,
   withMethods,
+  withProps,
   withState,
 } from '@ngrx/signals';
 import { AttachmentService } from '../../api/api/attachment.service';
@@ -20,7 +21,12 @@ import type { MessageDto } from '../../api/model/messageDto';
 import type { SendMessageDto } from '../../api/model/sendMessageDto';
 import { MessageRole } from '../../api/model/messageRole';
 import type { Conversation } from '../../../../libs/prompt-kit/conversation-list/pk-conversation-types';
-import { readSseHttpEvents } from '../../../../libs/prompt-kit/streaming';
+import {
+  readChatStream,
+  type ChatStreamFrame,
+  type ChatStreamHandlers,
+} from '../../../../libs/prompt-kit/streaming';
+import { createStreamingMessage } from '../../../../libs/prompt-kit/streaming-message';
 import { describeHttpError } from '../../../../libs/prompt-kit/http-error';
 
 const SELECTED_MODEL_KEY = 'polyglot.selectedModel';
@@ -47,12 +53,9 @@ type ChatStoreState = {
   selectedModelId: string | null;
   webSearchEnabled: boolean;
   isSending: boolean;
-  streamingText: string;
   streamToolSteps: ToolStep[];
-  streamDone: boolean;
   pendingAttachments: AttachmentDto[];
   isLoadingChat: boolean;
-  sendError: string | null;
   chatsLoaded: boolean;
   modelsLoaded: boolean;
 };
@@ -66,12 +69,9 @@ export const initialChatStore: ChatStoreState = {
   selectedModelId: readPersistedModel(),
   webSearchEnabled: false,
   isSending: false,
-  streamingText: '',
   streamToolSteps: [],
-  streamDone: false,
   pendingAttachments: [],
   isLoadingChat: false,
-  sendError: null,
   chatsLoaded: false,
   modelsLoaded: false,
 };
@@ -79,32 +79,24 @@ export const initialChatStore: ChatStoreState = {
 export const ChatStore = signalStore(
   { providedIn: 'root' },
   withState(initialChatStore),
+  // The pk-response-stream reveal handshake (buffer + done + finished→commit) is
+  // owned by createStreamingMessage(); only tool-step accumulation stays local.
+  withProps(() => ({ stream: createStreamingMessage() })),
   withComputed((store) => ({
     activeModel: computed<AvailableModelDto | null>(() => {
       const id = store.selectedModelId();
       return id ? (store.models().find((m) => m.id === id) ?? null) : null;
     }),
-    tokenSums: computed(() => {
-      let input = 0;
-      let output = 0;
-      for (const m of store.messages()) {
-        const t = Math.ceil(m.content.length / 4);
-        if (m.role === MessageRole.User) input += t;
-        else if (m.role === MessageRole.Assistant) output += t;
-      }
-      return { input, output };
-    }),
-  })),
-  withComputed((store) => ({
-    estimatedInputTokens: computed(() => store.tokenSums().input),
-    estimatedOutputTokens: computed(() => store.tokenSums().output),
+    /** Live streamed text — bind to pk-response-stream's [textStream]. */
+    streamingText: store.stream.text,
+    /** Source stream finished — bind to pk-response-stream's [done]. */
+    streamDone: store.stream.done,
   })),
   withMethods((store) => {
     const chatApi = inject(ChatService);
     const modelApi = inject(ModelService);
     const attachmentApi = inject(AttachmentService);
     let inFlight: { id: string; promise: Promise<void> } | null = null;
-    let pendingStream: { response: SendMessageDto; optimisticId: string } | null = null;
 
     function touchChat(id: string | null): void {
       if (!id) return;
@@ -202,12 +194,10 @@ export const ChatStore = signalStore(
         createdAt: new Date().toISOString(),
         attachments,
       };
+      store.stream.reset();
       patchState(store, (state) => ({
         isSending: true,
-        sendError: null,
-        streamingText: '',
         streamToolSteps: [],
-        streamDone: false,
         pendingAttachments: [],
         messages: [...state.messages, optimistic],
       }));
@@ -226,8 +216,7 @@ export const ChatStore = signalStore(
             true,
           ),
           {
-            onToken: (token) =>
-              patchState(store, (state) => ({ streamingText: state.streamingText + token })),
+            onToken: (token) => store.stream.append(token),
             onToolCall: (name, input) =>
               patchState(store, (state) => ({
                 streamToolSteps: [...state.streamToolSteps, { name, input, output: null }],
@@ -242,17 +231,20 @@ export const ChatStore = signalStore(
           },
         );
 
-        // Hold the final messages until the reveal animation catches up —
-        // commitStream() (wired to pk-response-stream's `finished` output)
-        // performs the actual swap.
-        pendingStream = { response, optimisticId: optimistic.id };
-        patchState(store, {
-          activeChatTitle: response.chatTitle,
-          isSending: false,
-          streamDone: true,
-        });
-
-        if (!store.streamingText()) commitStream();
+        // Hold the final messages until the reveal animation catches up. The
+        // controller runs this on pk-response-stream's (finished), or now if
+        // there was no buffered text to reveal.
+        store.stream.end(() =>
+          patchState(store, {
+            messages: [
+              ...store.messages().filter((m) => m.id !== optimistic.id),
+              response.userMessage,
+              response.assistantMessage,
+            ],
+            streamToolSteps: [],
+          }),
+        );
+        patchState(store, { activeChatTitle: response.chatTitle, isSending: false });
 
         if (response.chatId !== store.activeChatId()) {
           patchState(store, { activeChatId: response.chatId });
@@ -263,46 +255,30 @@ export const ChatStore = signalStore(
         return { kind: 'sent', newId: null };
       } catch (err) {
         const message = describeHttpError(err, ERROR_MESSAGES);
-        pendingStream = null;
+        store.stream.reset();
         patchState(store, {
           messages: store.messages().filter((m) => m.id !== optimistic.id),
-          sendError: message,
           isSending: false,
-          streamingText: '',
           streamToolSteps: [],
-          streamDone: false,
           pendingAttachments: attachments,
         });
         return { kind: 'error', error: message };
       }
     }
 
+    /** Wired to pk-response-stream's (finished): commit the held final messages. */
     function commitStream(): void {
-      if (!pendingStream) return;
-      const { response, optimisticId } = pendingStream;
-      pendingStream = null;
-      patchState(store, {
-        messages: [
-          ...store.messages().filter((m) => m.id !== optimisticId),
-          response.userMessage,
-          response.assistantMessage,
-        ],
-        streamingText: '',
-        streamToolSteps: [],
-        streamDone: false,
-      });
+      store.stream.finished();
     }
 
-    function clearSendError(): void {
-      patchState(store, { sendError: null });
-    }
-
-    async function uploadAttachment(file: File): Promise<void> {
+    /** Uploads an attachment; returns an error message on failure, else null. */
+    async function uploadAttachment(file: File): Promise<string | null> {
       try {
         const dto = await firstValueFrom(attachmentApi.apiAttachmentPost(file));
         patchState(store, (state) => ({ pendingAttachments: [...state.pendingAttachments, dto] }));
+        return null;
       } catch (err) {
-        patchState(store, { sendError: describeHttpError(err, ERROR_MESSAGES) });
+        return describeHttpError(err, ERROR_MESSAGES);
       }
     }
 
@@ -339,7 +315,6 @@ export const ChatStore = signalStore(
       toggleWebSearch,
       sendMessage,
       commitStream,
-      clearSendError,
       uploadAttachment,
       removeAttachment,
       renameChat,
@@ -353,44 +328,40 @@ function byUpdatedDesc(a: Conversation, b: Conversation): number {
   return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
 }
 
-interface StreamHandlers {
-  onToken: (token: string) => void;
-  onToolCall: (name: string, input: string) => void;
-  onToolResult: (name: string, output: string) => void;
-}
-
 /**
- * Consumes the SSE stream from POST /api/Chat using ngx-prompt-kit's
- * readSseHttpEvents() helper (frame buffering + cumulative partialText handling),
- * dispatching each frame to the handlers and resolving with the Done payload.
+ * Consumes the SSE stream from POST /api/Chat with ngx-prompt-kit's
+ * readChatStream(): the adapt() maps Polyglot's ChatStreamPayload to normalised
+ * frames; the library owns the frame loop + terminal done/error resolution.
  */
-async function streamSend(
+function streamSend(
   events$: Observable<HttpEvent<ChatStreamPayload>>,
-  handlers: StreamHandlers,
+  handlers: ChatStreamHandlers,
 ): Promise<SendMessageDto> {
-  let result: SendMessageDto | null = null;
-  let failed: string | null = null;
-
-  await readSseHttpEvents(events$, (data) => {
-    // The discriminator lives in the payload (not the SSE event name) so the
-    // same handling works over any transport, e.g. WebSockets.
-    const payload = JSON.parse(data) as ChatStreamPayload;
-    if (payload.type === ChatStreamPayloadType.Chunk && payload.text) {
-      handlers.onToken(payload.text);
-    } else if (payload.type === ChatStreamPayloadType.ToolCall && payload.toolName) {
-      handlers.onToolCall(payload.toolName, payload.toolInput ?? '');
-    } else if (payload.type === ChatStreamPayloadType.ToolResult && payload.toolName) {
-      handlers.onToolResult(payload.toolName, payload.toolOutput ?? '');
-    } else if (payload.type === ChatStreamPayloadType.Done && payload.result) {
-      result = payload.result;
-    } else if (payload.type === ChatStreamPayloadType.Error) {
-      failed = payload.error ?? 'Send failed.';
-    }
-  });
-
-  if (failed) throw new Error(failed);
-  if (!result) throw new Error('The stream ended unexpectedly.');
-  return result;
+  return readChatStream<SendMessageDto>(
+    events$,
+    (data): ChatStreamFrame<SendMessageDto> | null => {
+      const p = JSON.parse(data) as ChatStreamPayload;
+      switch (p.type) {
+        case ChatStreamPayloadType.Chunk:
+          return p.text ? { kind: 'token', text: p.text } : null;
+        case ChatStreamPayloadType.ToolCall:
+          return p.toolName
+            ? { kind: 'tool-call', name: p.toolName, input: p.toolInput ?? '' }
+            : null;
+        case ChatStreamPayloadType.ToolResult:
+          return p.toolName
+            ? { kind: 'tool-result', name: p.toolName, output: p.toolOutput ?? '' }
+            : null;
+        case ChatStreamPayloadType.Done:
+          return p.result ? { kind: 'done', result: p.result } : null;
+        case ChatStreamPayloadType.Error:
+          return { kind: 'error', error: p.error ?? 'Send failed.' };
+        default:
+          return null;
+      }
+    },
+    handlers,
+  );
 }
 
 function readPersistedModel(): string | null {

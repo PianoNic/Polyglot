@@ -14,6 +14,7 @@ import { McpStore } from '../shared/stores/McpStore.store';
 import { UserStore } from '../shared/stores/UserStore.store';
 import { McpTransportMode } from '../api/model/mcpTransportMode';
 import type { McpServerDto } from '../api/model/mcpServerDto';
+import { runGuarded } from '../shared/util/guarded-runner';
 
 type ServerDraft = {
   name: string;
@@ -59,7 +60,6 @@ export class Mcp implements OnInit {
   protected readonly userStore = inject(UserStore);
   protected readonly transportModes = Object.values(McpTransportMode);
 
-  protected readonly error = signal<string | null>(null);
   protected readonly draft = signal<ServerDraft>(emptyDraft());
   protected readonly editingId = signal<string | null>(null);
   protected readonly editDraft = signal<ServerDraft>(emptyDraft());
@@ -79,14 +79,14 @@ export class Mcp implements OnInit {
 
   protected addServer(): void {
     const draft = this.draft();
-    if (!draft.name.trim() || !draft.url.trim())
-      return;
+    if (!draft.name.trim() || !draft.url.trim()) return;
     void this.run(async () => {
       await this.store.create({
         name: draft.name.trim(),
         url: draft.url.trim(),
         transportMode: draft.transportMode,
-        authorizationHeader: draft.authorizationHeader.trim() === '' ? null : draft.authorizationHeader.trim(),
+        authorizationHeader:
+          draft.authorizationHeader.trim() === '' ? null : draft.authorizationHeader.trim(),
         enabled: draft.enabled,
         global: this.userStore.isAdmin() ? draft.global : false,
       });
@@ -112,18 +112,17 @@ export class Mcp implements OnInit {
 
   protected saveEdit(): void {
     const id = this.editingId();
-    if (!id)
-      return;
+    if (!id) return;
     const draft = this.editDraft();
-    if (!draft.name.trim() || !draft.url.trim())
-      return;
+    if (!draft.name.trim() || !draft.url.trim()) return;
     void this.run(async () => {
       await this.store.update(id, {
         name: draft.name.trim(),
         url: draft.url.trim(),
         transportMode: draft.transportMode,
         // Blank keeps the existing secret; the server never returns the value to edit.
-        authorizationHeader: draft.authorizationHeader.trim() === '' ? null : draft.authorizationHeader.trim(),
+        authorizationHeader:
+          draft.authorizationHeader.trim() === '' ? null : draft.authorizationHeader.trim(),
         enabled: draft.enabled,
       });
       this.editingId.set(null);
@@ -134,12 +133,7 @@ export class Mcp implements OnInit {
     void this.run(() => this.store.remove(id));
   }
 
-  private async run(action: () => Promise<void>): Promise<void> {
-    this.error.set(null);
-    try {
-      await action();
-    } catch (err) {
-      this.error.set(err instanceof Error ? err.message : 'Request failed.');
-    }
+  private run(action: () => Promise<void>): Promise<void> {
+    return runGuarded(action);
   }
 }

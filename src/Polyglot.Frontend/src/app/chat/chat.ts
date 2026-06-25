@@ -3,12 +3,10 @@ import {
   Component,
   computed,
   effect,
-  ElementRef,
   inject,
   OnInit,
   signal,
   untracked,
-  viewChild,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { HttpClient } from '@angular/common/http';
@@ -29,6 +27,7 @@ import {
 } from '@ng-icons/lucide';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmIcon } from '@spartan-ng/helm/icon';
+import { toast } from '@spartan-ng/brain/sonner';
 import { MessageRole } from '../api/model/messageRole';
 import type { AttachmentDto } from '../api/model/attachmentDto';
 import type { MessageDto } from '../api/model/messageDto';
@@ -38,6 +37,7 @@ import { PkAttachmentChip } from '../../../libs/prompt-kit/attachment-preview';
 import type { Attachment } from '../../../libs/prompt-kit/attachment-preview';
 import { PkChatContainerImports } from '../../../libs/prompt-kit/chat-container';
 import { PkChatEmpty } from '../../../libs/prompt-kit/chat-empty/pk-chat-empty';
+import { PkFileUploadImports } from '../../../libs/prompt-kit/file-upload';
 import { PkToolStepsImports, type PkToolStep } from '../../../libs/prompt-kit/tool-steps';
 import type { ChatEmptySuggestion } from '../../../libs/prompt-kit/chat-empty/pk-chat-empty';
 import { PkLoader } from '../../../libs/prompt-kit/loader/pk-loader';
@@ -46,11 +46,11 @@ import { PkModelPickerImports } from '../../../libs/prompt-kit/model-picker';
 import { PkPromptInputImports } from '../../../libs/prompt-kit/prompt-input';
 import { PkResponseStream } from '../../../libs/prompt-kit/response-stream';
 import { PkScrollButton } from '../../../libs/prompt-kit/scroll-button/pk-scroll-button';
-import { PkSystemMessage } from '../../../libs/prompt-kit/system-message/pk-system-message';
 import { PkTokenCounter } from '../../../libs/prompt-kit/token-counter/pk-token-counter';
 import { ChatStore } from '../shared/stores/ChatStore.store';
 import type { ToolStep } from '../shared/stores/ChatStore.store';
-import { AuthImage } from '../shared/components/auth-image/auth-image';
+import { PkAuthImageImports } from '../../../libs/prompt-kit/auth-image';
+import { modelIconUrl } from '../../../libs/prompt-kit/model-icon';
 
 const SUGGESTIONS: ChatEmptySuggestion[] = [
   { label: 'Explain a concept', icon: 'lucideLightbulb', prompt: 'Explain how OAuth 2.0 works.' },
@@ -67,9 +67,10 @@ const SUGGESTIONS: ChatEmptySuggestion[] = [
     NgIcon,
     HlmButton,
     HlmIcon,
-    AuthImage,
+    PkAuthImageImports,
     PkChatContainerImports,
     PkToolStepsImports,
+    PkFileUploadImports,
     PkChatEmpty,
     PkLoader,
     PkMessageImports,
@@ -79,7 +80,6 @@ const SUGGESTIONS: ChatEmptySuggestion[] = [
     PkResponseStream,
     ContentHeader,
     PkScrollButton,
-    PkSystemMessage,
     PkTokenCounter,
   ],
   providers: [
@@ -105,8 +105,6 @@ export class Chat implements OnInit {
   protected readonly store = inject(ChatStore);
   protected readonly Role = MessageRole;
 
-  private readonly fileInput = viewChild<ElementRef<HTMLInputElement>>('fileInput');
-
   protected readonly acceptTypes = computed(() => {
     const documents = '.pdf,.txt,.md,.csv';
     const model = this.store.activeModel();
@@ -117,6 +115,17 @@ export class Chat implements OnInit {
   private readonly lastFailed = signal<string | null>(null);
   protected readonly suggestions = SUGGESTIONS;
   protected readonly inputLimit = 4000;
+
+  /** Models for the picker: brand icon from the vendor, no $ pricing (Polyglot
+   *  bills in credits, so the picker's per-1M price line is omitted). */
+  protected readonly modelsWithIcons = computed(() =>
+    this.store.models().map((m) => ({
+      id: m.id,
+      name: m.name,
+      provider: m.provider,
+      iconUrl: modelIconUrl(m),
+    })),
+  );
 
   protected readonly hasMessages = computed(() => this.store.messages().length > 0);
   protected readonly canSend = computed(() => {
@@ -174,6 +183,7 @@ export class Chat implements OnInit {
     if (result.kind === 'error') {
       this.lastFailed.set(text);
       this.draft.set(text);
+      toast.error(result.error, { action: { label: 'Retry', onClick: () => void this.retry() } });
       return;
     }
     this.lastFailed.set(null);
@@ -185,21 +195,15 @@ export class Chat implements OnInit {
   protected async retry(): Promise<void> {
     const text = this.lastFailed();
     if (!text) return;
-    this.store.clearSendError();
     this.draft.set(text);
     await this.onSubmit();
   }
 
-  protected openFilePicker(): void {
-    this.fileInput()?.nativeElement.click();
-  }
-
-  protected async onFilesSelected(event: Event): Promise<void> {
-    const input = event.target as HTMLInputElement;
-    for (const file of Array.from(input.files ?? [])) {
-      await this.store.uploadAttachment(file);
+  protected async onFiles(files: File[]): Promise<void> {
+    for (const file of files) {
+      const error = await this.store.uploadAttachment(file);
+      if (error) toast.error(error);
     }
-    input.value = '';
   }
 
   /** Parsed Message.toolCalls JSON, cached per message id. */
@@ -244,6 +248,27 @@ export class Chat implements OnInit {
     this.toPkSteps(this.store.streamToolSteps()),
   );
 
+  /** Display name of the model that produced an assistant message. */
+  protected modelName(m: MessageDto): string {
+    const id = m.model;
+    if (!id) return 'Assistant';
+    return this.store.models().find((x) => x.id === id)?.name ?? id.split('/').pop() ?? id;
+  }
+
+  /** Brand icon URL for the model that produced a message (empty if unknown). */
+  protected modelIcon(m: MessageDto): string {
+    return m.model ? modelIconUrl({ id: m.model }) : '';
+  }
+
+  /** Name/icon of the currently selected model, for the in-flight reply. */
+  protected readonly activeModelName = computed(
+    () => this.store.activeModel()?.name ?? 'Assistant',
+  );
+  protected readonly activeModelIcon = computed(() => {
+    const m = this.store.activeModel();
+    return m ? modelIconUrl({ id: m.id }) : '';
+  });
+
   protected asChip(a: AttachmentDto): Attachment {
     return {
       id: a.id,
@@ -254,9 +279,13 @@ export class Chat implements OnInit {
     };
   }
 
+  protected attachmentUrl(id: string): string {
+    return `${this.basePath}/api/Attachment/${id}`;
+  }
+
   protected async openAttachment(id: string): Promise<void> {
     const blob = await firstValueFrom(
-      this.http.get(`${this.basePath}/api/Attachment/${id}`, { responseType: 'blob' }),
+      this.http.get(this.attachmentUrl(id), { responseType: 'blob' }),
     );
     window.open(URL.createObjectURL(blob), '_blank');
   }

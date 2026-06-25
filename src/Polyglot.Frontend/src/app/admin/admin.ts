@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  OnInit,
+  signal,
+} from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NgIcon, provideIcons } from '@ng-icons/core';
@@ -16,6 +23,7 @@ import { CreditAdjustmentMode } from '../api/model/creditAdjustmentMode';
 import { ModelListMode } from '../api/model/modelListMode';
 import { ModelListType } from '../api/model/modelListType';
 import type { UserDto } from '../api/model/userDto';
+import { runGuarded } from '../shared/util/guarded-runner';
 
 type SettingsDraft = {
   maxPricePerMillionTokens: number | null;
@@ -57,7 +65,6 @@ export class Admin implements OnInit {
   protected readonly creditMode = signal<CreditAdjustmentMode>(CreditAdjustmentMode.Add);
   protected readonly newEntryModelId = signal('');
   protected readonly newEntryType = signal<ModelListType>(ModelListType.Whitelist);
-  protected readonly error = signal<string | null>(null);
 
   protected readonly settingsDraft = signal<SettingsDraft>({
     maxPricePerMillionTokens: null,
@@ -103,8 +110,7 @@ export class Admin implements OnInit {
 
   protected applyCredits(): void {
     const user = this.creditUser();
-    if (!user)
-      return;
+    if (!user) return;
     void this.run(async () => {
       await this.store.adjustCredits(user.id, Number(this.creditAmount()), this.creditMode());
       this.creditUser.set(null);
@@ -113,8 +119,7 @@ export class Admin implements OnInit {
 
   protected addEntry(): void {
     const modelId = this.newEntryModelId().trim();
-    if (!modelId)
-      return;
+    if (!modelId) return;
     void this.run(async () => {
       await this.store.addListEntry(modelId, this.newEntryType());
       this.newEntryModelId.set('');
@@ -129,7 +134,8 @@ export class Admin implements OnInit {
     const draft = this.settingsDraft();
     void this.run(() =>
       this.store.saveSettings({
-        maxPricePerMillionTokens: draft.maxPricePerMillionTokens === null ? null : Number(draft.maxPricePerMillionTokens),
+        maxPricePerMillionTokens:
+          draft.maxPricePerMillionTokens === null ? null : Number(draft.maxPricePerMillionTokens),
         activeModelListMode: draft.activeModelListMode,
         startingBalance: Number(draft.startingBalance),
         costMultiplier: Number(draft.costMultiplier),
@@ -143,12 +149,7 @@ export class Admin implements OnInit {
     this.settingsDraft.update((d) => ({ ...d, ...patch }));
   }
 
-  private async run(action: () => Promise<void>): Promise<void> {
-    this.error.set(null);
-    try {
-      await action();
-    } catch (err) {
-      this.error.set(err instanceof Error ? err.message : 'Request failed.');
-    }
+  private run(action: () => Promise<void>): Promise<void> {
+    return runGuarded(action);
   }
 }

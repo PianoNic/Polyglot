@@ -5,10 +5,6 @@
 
   <div class="min-h-0 flex-1 overflow-y-auto px-4 py-4">
     <div class="mx-auto w-full max-w-5xl">
-      @if (error(); as err) {
-        <p class="text-destructive mb-4 text-sm">{{ err }}</p>
-      }
-
       <hlm-tabs tab="users">
         <hlm-tabs-list class="mb-4 self-center">
           <button hlmTabsTrigger="users" type="button">Users</button>
@@ -47,7 +43,13 @@
                       }
                     </td>
                     <td hlmTd class="text-right">
-                      <button hlmBtn variant="ghost" size="sm" type="button" (click)="openCreditEditor(user)">
+                      <button
+                        hlmBtn
+                        variant="ghost"
+                        size="sm"
+                        type="button"
+                        (click)="openCreditEditor(user)"
+                      >
                         Credits
                       </button>
                       <button
@@ -58,7 +60,10 @@
                         [attr.aria-label]="user.isLocked ? 'Unlock user' : 'Lock user'"
                         (click)="toggleLock(user)"
                       >
-                        <ng-icon [name]="user.isLocked ? 'lucideLockOpen' : 'lucideLock'" size="16" />
+                        <ng-icon
+                          [name]="user.isLocked ? 'lucideLockOpen' : 'lucideLock'"
+                          size="16"
+                        />
                       </button>
                     </td>
                   </tr>
@@ -78,14 +83,25 @@
                           </label>
                           <label hlmLabel class="grid gap-1 text-xs">
                             Mode
-                            <hlm-native-select [ngModel]="creditMode()" (ngModelChange)="creditMode.set($event)">
+                            <hlm-native-select
+                              [ngModel]="creditMode()"
+                              (ngModelChange)="creditMode.set($event)"
+                            >
                               @for (mode of adjustModes; track mode) {
                                 <option hlmNativeSelectOption [value]="mode">{{ mode }}</option>
                               }
                             </hlm-native-select>
                           </label>
-                          <button hlmBtn size="sm" type="button" (click)="applyCredits()">Apply</button>
-                          <button hlmBtn variant="ghost" size="sm" type="button" (click)="creditUser.set(null)">
+                          <button hlmBtn size="sm" type="button" (click)="applyCredits()">
+                            Apply
+                          </button>
+                          <button
+                            hlmBtn
+                            variant="ghost"
+                            size="sm"
+                            type="button"
+                            (click)="creditUser.set(null)"
+                          >
                             Cancel
                           </button>
                         </div>
@@ -94,7 +110,9 @@
                   }
                 } @empty {
                   <tr hlmTr>
-                    <td hlmTd colspan="5" class="text-muted-foreground text-center">No users yet.</td>
+                    <td hlmTd colspan="5" class="text-muted-foreground text-center">
+                      No users yet.
+                    </td>
                   </tr>
                 }
               </tbody>
@@ -123,7 +141,10 @@
             </datalist>
             <label hlmLabel class="grid gap-1 text-xs">
               List
-              <hlm-native-select [ngModel]="newEntryType()" (ngModelChange)="newEntryType.set($event)">
+              <hlm-native-select
+                [ngModel]="newEntryType()"
+                (ngModelChange)="newEntryType.set($event)"
+              >
                 <option hlmNativeSelectOption [value]="ListType.Whitelist">Whitelist</option>
                 <option hlmNativeSelectOption [value]="ListType.Blacklist">Blacklist</option>
               </hlm-native-select>
@@ -148,7 +169,12 @@
                   <tr hlmTr>
                     <td hlmTd class="font-mono text-xs">{{ entry.modelId }}</td>
                     <td hlmTd>
-                      <span hlmBadge [variant]="entry.listType === ListType.Whitelist ? 'secondary' : 'destructive'">
+                      <span
+                        hlmBadge
+                        [variant]="
+                          entry.listType === ListType.Whitelist ? 'secondary' : 'destructive'
+                        "
+                      >
                         {{ entry.listType }}
                       </span>
                     </td>
@@ -196,7 +222,11 @@
                 hlmInput
                 type="number"
                 [ngModel]="settingsDraft().maxPricePerMillionTokens"
-                (ngModelChange)="patchDraft({ maxPricePerMillionTokens: $event === '' || $event === null ? null : $event })"
+                (ngModelChange)="
+                  patchDraft({
+                    maxPricePerMillionTokens: $event === '' || $event === null ? null : $event,
+                  })
+                "
               />
             </label>
             <label hlmLabel class="grid gap-1 text-xs">
@@ -239,7 +269,9 @@
                 }
               </hlm-native-select>
             </label>
-            <button hlmBtn type="button" class="w-fit" (click)="saveSettings()">Save settings</button>
+            <button hlmBtn type="button" class="w-fit" (click)="saveSettings()">
+              Save settings
+            </button>
           </div>
         </div>
       </hlm-tabs>

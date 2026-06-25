@@ -40,7 +40,7 @@
         "@spartan-ng/cli": "^0.0.1-alpha.683",
         "@tailwindcss/postcss": "^4.1.12",
         "@types/katex": "^0.16.8",
-        "ngx-prompt-kit": "21.3.1",
+        "ngx-prompt-kit": "21.4.1",
         "postcss": "^8.5.3",
         "prettier": "^3.8.1",
         "tailwindcss": "^4.1.12",
@@ -2148,7 +2148,7 @@
 
     "netmask": ["netmask@2.1.1", "", {}, "sha512-eonl3sLUha+S1GzTPxychyhnUzKyeQkZ7jLjKrBagJgPla13F+uQ71HgpFefyHgqrjEbCPkDArxYsjY8/+gLKA=="],
 
-    "ngx-prompt-kit": ["ngx-prompt-kit@21.3.1", "", { "dependencies": { "@angular-devkit/core": "^21.0.0", "@angular-devkit/schematics": "^21.0.0", "@schematics/angular": "^21.0.0" } }, "sha512-5iWSdUsbrGaAPBk4yHGgiSsJN2Whik2+1ah1AKiQvwkEOWK+QHj/wqh0IzGM0Pu6Wru0T10yUf1mJdp2ieDmNw=="],
+    "ngx-prompt-kit": ["ngx-prompt-kit@21.4.1", "", { "dependencies": { "@angular-devkit/core": "^21.0.0", "@angular-devkit/schematics": "^21.0.0", "@schematics/angular": "^21.0.0" } }, "sha512-8g8pSl18MaHMdNVvl7+vIc41nhR+b34l1CofcuaLgfdfPcb34gLzGjMoX1/Lpt7GP0izUsNOBG2P/D5hLS6O/g=="],
 
     "node-abort-controller": ["node-abort-controller@3.1.1", "", {}, "sha512-AGK2yQKIjRuqnc6VkX2Xj5d+QW8xZ87pa1UK6yA6ouUyuxfHuMP6umE5QK7UmTeOAymo+Zx1Fxiuw9rVx8taHQ=="],
 

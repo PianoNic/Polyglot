@@ -6,7 +6,11 @@
   <div class="min-h-0 flex-1 overflow-y-auto px-4 py-4">
     <div class="mx-auto grid w-full max-w-2xl gap-4">
       <p class="text-muted-foreground text-sm">
-        Current balance: <span class="text-foreground font-medium tabular-nums">{{ userStore.creditBalance() | number }}</span> credits
+        Current balance:
+        <span class="text-foreground font-medium tabular-nums">{{
+          userStore.creditBalance() | number
+        }}</span>
+        credits
       </p>
 
       @if (notice() === 'success') {
@@ -14,12 +18,8 @@
           Payment received. Your credits will appear shortly.
         </div>
       } @else if (notice() === 'cancel') {
-        <div class="text-muted-foreground rounded-md border px-3 py-2 text-sm">Checkout cancelled.</div>
-      }
-
-      @if (error(); as err) {
-        <div class="border-destructive/40 bg-destructive/10 text-destructive rounded-md border px-3 py-2 text-sm">
-          {{ err }}
+        <div class="text-muted-foreground rounded-md border px-3 py-2 text-sm">
+          Checkout cancelled.
         </div>
       }
 
@@ -67,7 +67,9 @@
 
           @if (hasSubscriptions()) {
             <div class="mt-2 flex items-center justify-between gap-3 rounded-lg border p-4">
-              <span class="text-muted-foreground text-sm">Manage or cancel an active subscription.</span>
+              <span class="text-muted-foreground text-sm"
+                >Manage or cancel an active subscription.</span
+              >
               <button
                 hlmBtn
                 size="sm"

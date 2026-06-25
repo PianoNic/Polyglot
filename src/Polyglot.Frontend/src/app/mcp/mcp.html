@@ -5,13 +5,9 @@
 
   <div class="min-h-0 flex-1 overflow-y-auto px-4 py-4">
     <div class="mx-auto w-full max-w-5xl">
-      @if (error(); as err) {
-        <p class="text-destructive mb-4 text-sm">{{ err }}</p>
-      }
-
       <p class="text-muted-foreground mb-4 text-sm">
-        Connect remote MCP servers (HTTP/SSE) to expose their tools to tool-capable models.
-        Personal servers are only yours; shared servers are available to everyone.
+        Connect remote MCP servers (HTTP/SSE) to expose their tools to tool-capable models. Personal
+        servers are only yours; shared servers are available to everyone.
       </p>
 
       <div class="mb-6 grid gap-3 rounded-lg border p-4">
@@ -187,7 +183,9 @@
                           hlmInput
                           type="text"
                           class="w-64"
-                          [placeholder]="server.hasAuthHeader ? 'Leave blank to keep' : 'Bearer ...'"
+                          [placeholder]="
+                            server.hasAuthHeader ? 'Leave blank to keep' : 'Bearer ...'
+                          "
                           [ngModel]="editDraft().authorizationHeader"
                           (ngModelChange)="patchEditDraft({ authorizationHeader: $event })"
                         />
@@ -201,14 +199,18 @@
                         <label hlmLabel for="mcp-edit-enabled" class="text-xs">Enabled</label>
                       </div>
                       <button hlmBtn size="sm" type="button" (click)="saveEdit()">Save</button>
-                      <button hlmBtn variant="ghost" size="sm" type="button" (click)="cancelEdit()">Cancel</button>
+                      <button hlmBtn variant="ghost" size="sm" type="button" (click)="cancelEdit()">
+                        Cancel
+                      </button>
                     </div>
                   </td>
                 </tr>
               }
             } @empty {
               <tr hlmTr>
-                <td hlmTd colspan="5" class="text-muted-foreground text-center">No MCP servers yet.</td>
+                <td hlmTd colspan="5" class="text-muted-foreground text-center">
+                  No MCP servers yet.
+                </td>
               </tr>
             }
           </tbody>
