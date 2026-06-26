@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Mediator;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
@@ -21,6 +22,7 @@ namespace Polyglot.Application.Command
 
     public abstract record ChatStreamEvent;
     public sealed record ChatStreamChunk(string Text) : ChatStreamEvent;
+    public sealed record ChatStreamReasoning(string Text) : ChatStreamEvent;
     public sealed record ChatStreamToolCall(string Name, string Input) : ChatStreamEvent;
     public sealed record ChatStreamToolResult(string Name, string Output) : ChatStreamEvent;
     public sealed record ChatStreamDone(SendMessageDto Result) : ChatStreamEvent;
@@ -30,11 +32,25 @@ namespace Polyglot.Application.Command
     {
         private const string FallbackImageModel = "google/gemini-2.5-flash-image";
 
+        // Prepended to every request. Generated images are delivered as real
+        // attachments shown below the reply, so the model must not try to embed
+        // or mark the image itself: no inline image markup (which renders as a
+        // broken image) and no textual placeholder/caption (like "(Image of a
+        // cow)") standing in for where the image should go.
+        private const string SystemPrompt =
+            "You are a helpful assistant inside a chat application. When you call the generate_image tool, "
+            + "the resulting image is automatically attached to your reply and displayed to the user below your message. "
+            + "Do not try to embed or mark the image yourself: no image markdown, links, or URLs, no data: URIs or "
+            + "base64 image data, no attachment:// or sandbox: paths, and no textual placeholders or captions such as "
+            + "\"(image here)\" or \"(Image of a cow)\". Write your reply as if the image is already shown; you may "
+            + "mention it naturally in a sentence, but never insert a standalone placeholder for it.";
+
         // Tool steps are serialized for human display in the chat UI, so keep
         // characters like '+' readable instead of \u-escaped.
         private static readonly JsonSerializerOptions ToolStepJsonOptions = new(JsonSerializerOptions.Web)
         {
-            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
         };
 
         public async IAsyncEnumerable<ChatStreamEvent> Handle(SendMessageCommand command, [EnumeratorCancellation] CancellationToken cancellationToken)
@@ -55,8 +71,11 @@ namespace Polyglot.Application.Command
             UsageDetails? usage = null;
             ChatFinishReason? finishReason = null;
             string? streamError = null;
-            var toolSteps = new List<ToolStep>();
-            var pendingToolCalls = new Dictionary<string, ToolStep>();
+            // Ordered chain-of-thought: reasoning segments interleaved with tool
+            // calls, in the order they occur. Serialized onto Message.ToolCalls.
+            var steps = new List<CotStep>();
+            var pendingToolCalls = new Dictionary<string, CotStep>();
+            CotStep? currentReasoning = null;
 
             // Built-in image-generation tool: images it produces are collected here and
             // linked to the assistant message once it is created, and their upstream cost
@@ -109,6 +128,22 @@ namespace Polyglot.Application.Command
                     if (update.FinishReason is { } fr)
                         finishReason = fr;
 
+                    // Reasoning arrives in OpenRouter's non-standard delta.reasoning
+                    // field, which the OpenAI SDK does not surface as content; pull it
+                    // from the raw update. Consecutive reasoning deltas coalesce into
+                    // one step until a tool call breaks the segment.
+                    var reasoningDelta = ExtractReasoningDelta(update);
+                    if (!string.IsNullOrEmpty(reasoningDelta))
+                    {
+                        if (currentReasoning is null)
+                        {
+                            currentReasoning = new CotStep { Type = "reasoning", Text = string.Empty };
+                            steps.Add(currentReasoning);
+                        }
+                        currentReasoning.Text += reasoningDelta;
+                        yield return new ChatStreamReasoning(reasoningDelta);
+                    }
+
                     foreach (var content in update.Contents)
                     {
                         switch (content)
@@ -119,9 +154,12 @@ namespace Polyglot.Application.Command
                                 break;
                             case FunctionCallContent fcc:
                                 {
+                                    // A tool call closes the current reasoning segment; later
+                                    // reasoning starts a fresh step after the tool.
+                                    currentReasoning = null;
                                     var input = fcc.Arguments is null ? string.Empty : JsonSerializer.Serialize(fcc.Arguments, ToolStepJsonOptions);
-                                    var step = new ToolStep(fcc.Name, input);
-                                    toolSteps.Add(step);
+                                    var step = new CotStep { Type = "tool", Name = fcc.Name, Input = input };
+                                    steps.Add(step);
                                     pendingToolCalls[fcc.CallId] = step;
                                     yield return new ChatStreamToolCall(fcc.Name, input);
                                     break;
@@ -158,7 +196,7 @@ namespace Polyglot.Application.Command
                     yield break;
                 }
 
-                var done = await FinalizeAsync(command, ctx, assistantContent.ToString(), finishReason, usage, toolSteps, generatedImages, imageCostUsd, cancellationToken);
+                var done = await FinalizeAsync(command, ctx, assistantContent.ToString(), finishReason, usage, steps, generatedImages, imageCostUsd, cancellationToken);
                 yield return new ChatStreamDone(done);
             }
             finally
@@ -266,7 +304,8 @@ namespace Polyglot.Application.Command
                 .Concat(newAttachments)
                 .ToLookup(a => a.MessageId!.Value);
 
-            var messages = new List<ChatMessage>(chat.Messages.Count);
+            var messages = new List<ChatMessage>(chat.Messages.Count + 1);
+            messages.Add(new ChatMessage(ChatRole.System, SystemPrompt));
             foreach (var msg in chat.Messages.OrderBy(m => m.SequenceNumber))
             {
                 var role = msg.Role switch
@@ -292,7 +331,7 @@ namespace Polyglot.Application.Command
             };
         }
 
-        private async Task<SendMessageDto> FinalizeAsync(SendMessageCommand command, PreflightContext ctx, string assistantText, ChatFinishReason? finishReason, UsageDetails? usage, List<ToolStep> toolSteps, List<Attachment> generatedImages, decimal imageCostUsd, CancellationToken cancellationToken)
+        private async Task<SendMessageDto> FinalizeAsync(SendMessageCommand command, PreflightContext ctx, string assistantText, ChatFinishReason? finishReason, UsageDetails? usage, List<CotStep> steps, List<Attachment> generatedImages, decimal imageCostUsd, CancellationToken cancellationToken)
         {
             var promptTokens = (int)(usage?.InputTokenCount ?? 0);
             var completionTokens = (int)(usage?.OutputTokenCount ?? 0);
@@ -316,7 +355,7 @@ namespace Polyglot.Application.Command
                 Role = MessageRole.Assistant,
                 Content = assistantText,
                 Model = command.Model,
-                ToolCalls = toolSteps.Count > 0 ? JsonSerializer.Serialize(toolSteps, ToolStepJsonOptions) : null,
+                ToolCalls = steps.Count > 0 ? JsonSerializer.Serialize(steps, ToolStepJsonOptions) : null,
                 FinishReason = finishReason?.ToString(),
                 TokenUsage = $"{promptTokens}/{completionTokens}",
                 SequenceNumber = ctx.UserSequence + 1
@@ -455,13 +494,54 @@ namespace Polyglot.Application.Command
             return new DataContent(attachment.Data, attachment.MediaType);
         }
 
-        // Serialized onto Message.ToolCalls as a JSON array so the chain of
-        // thought can be re-rendered when a chat is reloaded.
-        private sealed class ToolStep(string name, string input)
+        // One ordered chain-of-thought step, serialized onto Message.ToolCalls so
+        // the sequence (reasoning, tool, reasoning, ...) re-renders on reload.
+        // Type is "reasoning" (uses Text) or "tool" (uses Name/Input/Output).
+        private sealed class CotStep
         {
-            public string Name { get; } = name;
-            public string Input { get; } = input;
+            public string Type { get; set; } = "";
+            public string? Text { get; set; }
+            public string? Name { get; set; }
+            public string? Input { get; set; }
             public string? Output { get; set; }
+        }
+
+        // OpenRouter streams reasoning in delta.reasoning (or delta.reasoning_details[].text),
+        // which the OpenAI SDK drops. Recover it from the raw update. reasoning and
+        // reasoning_details carry the same text, so prefer reasoning and only fall back.
+        private static string? ExtractReasoningDelta(ChatResponseUpdate update)
+        {
+            if (update.RawRepresentation is null) return null;
+            try
+            {
+                var bin = System.ClientModel.Primitives.ModelReaderWriter.Write(update.RawRepresentation);
+                using var doc = JsonDocument.Parse(bin.ToMemory());
+                if (!doc.RootElement.TryGetProperty("choices", out var choices)
+                    || choices.ValueKind != JsonValueKind.Array
+                    || choices.GetArrayLength() == 0
+                    || !choices[0].TryGetProperty("delta", out var delta))
+                    return null;
+
+                if (delta.TryGetProperty("reasoning", out var r) && r.ValueKind == JsonValueKind.String)
+                {
+                    var s = r.GetString();
+                    if (!string.IsNullOrEmpty(s)) return s;
+                }
+
+                if (delta.TryGetProperty("reasoning_details", out var rd) && rd.ValueKind == JsonValueKind.Array)
+                {
+                    var sb = new StringBuilder();
+                    foreach (var item in rd.EnumerateArray())
+                        if (item.TryGetProperty("text", out var t) && t.ValueKind == JsonValueKind.String)
+                            sb.Append(t.GetString());
+                    if (sb.Length > 0) return sb.ToString();
+                }
+            }
+            catch
+            {
+                // Reasoning is best-effort; never fail the stream over it.
+            }
+            return null;
         }
 
         private sealed class PreflightResult

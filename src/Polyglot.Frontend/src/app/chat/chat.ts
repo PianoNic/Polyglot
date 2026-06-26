@@ -38,7 +38,7 @@ import type { Attachment } from '../../../libs/prompt-kit/attachment-preview';
 import { PkChatContainerImports } from '../../../libs/prompt-kit/chat-container';
 import { PkChatEmpty } from '../../../libs/prompt-kit/chat-empty/pk-chat-empty';
 import { PkFileUploadImports } from '../../../libs/prompt-kit/file-upload';
-import { PkToolStepsImports, type PkToolStep } from '../../../libs/prompt-kit/tool-steps';
+import { ChainOfThought } from './chain-of-thought';
 import type { ChatEmptySuggestion } from '../../../libs/prompt-kit/chat-empty/pk-chat-empty';
 import { PkLoader } from '../../../libs/prompt-kit/loader/pk-loader';
 import { PkMessageImports } from '../../../libs/prompt-kit/message';
@@ -48,7 +48,7 @@ import { PkResponseStream } from '../../../libs/prompt-kit/response-stream';
 import { PkScrollButton } from '../../../libs/prompt-kit/scroll-button/pk-scroll-button';
 import { PkTokenCounter } from '../../../libs/prompt-kit/token-counter/pk-token-counter';
 import { ChatStore } from '../shared/stores/ChatStore.store';
-import type { ToolStep } from '../shared/stores/ChatStore.store';
+import type { CotStep } from '../shared/stores/ChatStore.store';
 import { PkAuthImageImports } from '../../../libs/prompt-kit/auth-image';
 import { modelIconUrl } from '../../../libs/prompt-kit/model-icon';
 
@@ -69,7 +69,6 @@ const SUGGESTIONS: ChatEmptySuggestion[] = [
     HlmIcon,
     PkAuthImageImports,
     PkChatContainerImports,
-    PkToolStepsImports,
     PkFileUploadImports,
     PkChatEmpty,
     PkLoader,
@@ -81,6 +80,7 @@ const SUGGESTIONS: ChatEmptySuggestion[] = [
     ContentHeader,
     PkScrollButton,
     PkTokenCounter,
+    ChainOfThought,
   ],
   providers: [
     provideIcons({
@@ -206,47 +206,27 @@ export class Chat implements OnInit {
     }
   }
 
-  /** Parsed Message.toolCalls JSON, cached per message id. */
-  private readonly toolStepsCache = new Map<string, ToolStep[]>();
+  /** Parsed Message.toolCalls JSON (ordered chain of thought), cached per id.
+   *  Tolerates the pre-reasoning shape where items were tool-only (no `type`). */
+  private readonly stepsCache = new Map<string, CotStep[]>();
 
-  private toolSteps(m: MessageDto): ToolStep[] {
+  protected steps(m: MessageDto): CotStep[] {
     if (!m.toolCalls) return [];
-    let steps = this.toolStepsCache.get(m.id);
+    let steps = this.stepsCache.get(m.id);
     if (!steps) {
       try {
-        steps = JSON.parse(m.toolCalls) as ToolStep[];
+        const parsed = JSON.parse(m.toolCalls) as CotStep[];
+        steps = parsed.map(
+          (s): CotStep =>
+            s.type ? s : { type: 'tool', name: s.name, input: s.input, output: s.output ?? null },
+        );
       } catch {
         steps = [];
       }
-      this.toolStepsCache.set(m.id, steps);
+      this.stepsCache.set(m.id, steps);
     }
     return steps;
   }
-
-  /** The executed code for execute_javascript steps, else the raw input JSON. */
-  private toolInput(step: ToolStep): string {
-    try {
-      const args = JSON.parse(step.input) as Record<string, unknown>;
-      if (typeof args['code'] === 'string') return args['code'];
-    } catch {
-      // fall through to raw input
-    }
-    return step.input;
-  }
-
-  private toPkSteps(steps: ToolStep[]): PkToolStep[] {
-    return steps.map((s) => ({ name: s.name, input: this.toolInput(s), output: s.output }));
-  }
-
-  /** Tool steps for a committed message, mapped for <pk-tool-steps>. */
-  protected pkSteps(m: MessageDto): PkToolStep[] {
-    return this.toPkSteps(this.toolSteps(m));
-  }
-
-  /** Tool steps for the in-flight streaming message. */
-  protected readonly pkStreamSteps = computed<PkToolStep[]>(() =>
-    this.toPkSteps(this.store.streamToolSteps()),
-  );
 
   /** Display name of the model that produced an assistant message. */
   protected modelName(m: MessageDto): string {

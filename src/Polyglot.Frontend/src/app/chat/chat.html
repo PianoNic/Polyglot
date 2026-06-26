@@ -67,7 +67,7 @@
                 <span class="text-muted-foreground flex h-8 items-center text-xs font-medium">{{
                   modelName(m)
                 }}</span>
-                <pk-tool-steps [steps]="pkSteps(m)" />
+                <polyglot-chain-of-thought [steps]="steps(m)" />
                 <pk-message-content
                   [markdown]="true"
                   [content]="m.content"
@@ -104,7 +104,7 @@
             </pk-message>
           }
         }
-        @if (store.streamingText() || store.streamToolSteps().length > 0) {
+        @if (store.streamingText() || store.streamSteps().length > 0) {
           <pk-message class="max-w-[85%] self-start">
             <div
               class="size-8 shrink-0 self-start overflow-hidden rounded-full border bg-white p-1"
@@ -120,7 +120,7 @@
               <span class="text-muted-foreground flex h-8 items-center text-xs font-medium">{{
                 activeModelName()
               }}</span>
-              <pk-tool-steps [steps]="pkStreamSteps()" />
+              <polyglot-chain-of-thought [steps]="store.streamSteps()" [streaming]="true" />
               @if (store.streamingText()) {
                 <pk-message-content class="bg-transparent p-0">
                   <pk-response-stream

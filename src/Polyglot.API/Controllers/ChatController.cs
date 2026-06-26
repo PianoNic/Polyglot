@@ -56,6 +56,7 @@ namespace Polyglot.API.Controllers
                 yield return evt switch
                 {
                     ChatStreamChunk c => new SseItem<ChatStreamPayload>(new ChatStreamPayload(ChatStreamPayloadType.Chunk, Text: c.Text), "chunk"),
+                    ChatStreamReasoning r => new SseItem<ChatStreamPayload>(new ChatStreamPayload(ChatStreamPayloadType.Reasoning, Text: r.Text), "reasoning"),
                     ChatStreamToolCall tc => new SseItem<ChatStreamPayload>(new ChatStreamPayload(ChatStreamPayloadType.ToolCall, ToolName: tc.Name, ToolInput: tc.Input), "tool-call"),
                     ChatStreamToolResult tr => new SseItem<ChatStreamPayload>(new ChatStreamPayload(ChatStreamPayloadType.ToolResult, ToolName: tr.Name, ToolOutput: tr.Output), "tool-result"),
                     ChatStreamDone d => new SseItem<ChatStreamPayload>(new ChatStreamPayload(ChatStreamPayloadType.Done, Result: d.Result), "done"),
@@ -100,6 +101,7 @@ namespace Polyglot.API.Controllers
     public enum ChatStreamPayloadType
     {
         Chunk,
+        Reasoning,
         Done,
         Error,
         ToolCall,

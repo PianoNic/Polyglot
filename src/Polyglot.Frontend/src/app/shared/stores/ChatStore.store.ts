@@ -36,12 +36,18 @@ const ERROR_MESSAGES = { forbidden: 'Out of credits or not authorized for this m
 
 export type SendResult = { kind: 'sent'; newId: string | null } | { kind: 'error'; error: string };
 
-/** One tool invocation in the assistant's chain of thought. Matches the
- *  camelCase JSON persisted on MessageDto.toolCalls. */
-export interface ToolStep {
-  name: string;
-  input: string;
-  output: string | null;
+/** One ordered step in the assistant's chain of thought: a reasoning segment or
+ *  a tool call. Matches the camelCase JSON persisted on MessageDto.toolCalls. */
+export interface CotStep {
+  type: 'reasoning' | 'tool';
+  /** Reasoning text (type === 'reasoning'). */
+  text?: string;
+  /** Tool name (type === 'tool'). */
+  name?: string;
+  /** Tool input JSON (type === 'tool'). */
+  input?: string;
+  /** Tool output; null while the tool is still running. */
+  output?: string | null;
 }
 
 type ChatStoreState = {
@@ -53,7 +59,7 @@ type ChatStoreState = {
   selectedModelId: string | null;
   webSearchEnabled: boolean;
   isSending: boolean;
-  streamToolSteps: ToolStep[];
+  streamSteps: CotStep[];
   pendingAttachments: AttachmentDto[];
   isLoadingChat: boolean;
   chatsLoaded: boolean;
@@ -69,7 +75,7 @@ export const initialChatStore: ChatStoreState = {
   selectedModelId: readPersistedModel(),
   webSearchEnabled: false,
   isSending: false,
-  streamToolSteps: [],
+  streamSteps: [],
   pendingAttachments: [],
   isLoadingChat: false,
   chatsLoaded: false,
@@ -197,7 +203,7 @@ export const ChatStore = signalStore(
       store.stream.reset();
       patchState(store, (state) => ({
         isSending: true,
-        streamToolSteps: [],
+        streamSteps: [],
         pendingAttachments: [],
         messages: [...state.messages, optimistic],
       }));
@@ -217,16 +223,35 @@ export const ChatStore = signalStore(
           ),
           {
             onToken: (token) => store.stream.append(token),
+            onReasoning: (delta) =>
+              patchState(store, (state) => {
+                const steps = [...state.streamSteps];
+                const last = steps[steps.length - 1];
+                if (last?.type === 'reasoning') {
+                  steps[steps.length - 1] = { ...last, text: (last.text ?? '') + delta };
+                } else {
+                  steps.push({ type: 'reasoning', text: delta });
+                }
+                return { streamSteps: steps };
+              }),
             onToolCall: (name, input) =>
               patchState(store, (state) => ({
-                streamToolSteps: [...state.streamToolSteps, { name, input, output: null }],
+                streamSteps: [
+                  ...state.streamSteps,
+                  { type: 'tool', name, input, output: null } as CotStep,
+                ],
               })),
             onToolResult: (name, output) =>
               patchState(store, (state) => {
-                const steps = [...state.streamToolSteps];
-                const idx = steps.findIndex((s) => s.name === name && s.output === null);
-                if (idx !== -1) steps[idx] = { ...steps[idx], output };
-                return { streamToolSteps: steps };
+                const steps = [...state.streamSteps];
+                for (let i = steps.length - 1; i >= 0; i--) {
+                  const s = steps[i];
+                  if (s.type === 'tool' && s.name === name && s.output === null) {
+                    steps[i] = { ...s, output };
+                    break;
+                  }
+                }
+                return { streamSteps: steps };
               }),
           },
         );
@@ -241,7 +266,7 @@ export const ChatStore = signalStore(
               response.userMessage,
               response.assistantMessage,
             ],
-            streamToolSteps: [],
+            streamSteps: [],
           }),
         );
         patchState(store, { activeChatTitle: response.chatTitle, isSending: false });
@@ -259,7 +284,7 @@ export const ChatStore = signalStore(
         patchState(store, {
           messages: store.messages().filter((m) => m.id !== optimistic.id),
           isSending: false,
-          streamToolSteps: [],
+          streamSteps: [],
           pendingAttachments: attachments,
         });
         return { kind: 'error', error: message };
@@ -344,6 +369,8 @@ function streamSend(
       switch (p.type) {
         case ChatStreamPayloadType.Chunk:
           return p.text ? { kind: 'token', text: p.text } : null;
+        case ChatStreamPayloadType.Reasoning:
+          return p.text ? { kind: 'reasoning', text: p.text } : null;
         case ChatStreamPayloadType.ToolCall:
           return p.toolName
             ? { kind: 'tool-call', name: p.toolName, input: p.toolInput ?? '' }
