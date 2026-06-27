@@ -32,7 +32,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      rustfs:
+      seaweedfs:
         condition: service_started
     networks:
       - internal
@@ -84,21 +84,34 @@ services:
       timeout: 5s
       retries: 5
 
-  rustfs:
-    image: rustfs/rustfs:latest
-    container_name: polyglot-rustfs
+  seaweedfs:
+    image: chrislusf/seaweedfs:latest
+    container_name: polyglot-seaweedfs
     restart: unless-stopped
     env_file:
       - .env
+    # SeaweedFS reads its S3 identities from a config file rather than env vars,
+    # so generate that file from the same env keys (single source of truth in
+    # .env), then run the all-in-one server with the S3 gateway on :9000 so the
+    # Backup__S3__Endpoint stays http://seaweedfs:9000.
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        mkdir -p /etc/seaweedfs
+        cat > /etc/seaweedfs/s3.json <<JSON
+        {"identities":[{"name":"polyglot","credentials":[{"accessKey":"$${SEAWEEDFS_ACCESS_KEY}","secretKey":"$${SEAWEEDFS_SECRET_KEY}"}],"actions":["Admin","Read","Write","List","Tagging"]}]}
+        JSON
+        exec weed server -dir=/data -s3 -s3.config=/etc/seaweedfs/s3.json -s3.port=9000
     volumes:
-      - rustfs-data:/data
+      - seaweedfs-data:/data
     networks:
       - internal
 
 volumes:
   postgres-data:
   pocket-id-data:
-  rustfs-data:
+  seaweedfs-data:
 
 networks:
   internal:

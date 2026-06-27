@@ -80,7 +80,7 @@ dotnet user-secrets set "OpenRouter:ApiKey" "<your-openrouter-api-key>"
 ```
 
 That's every secret the app needs for local development. Other settings
-(database backups to S3/RustFS via `Backup:*`, the chat-title model via
+(database backups to S3/SeaweedFS via `Backup:*`, the chat-title model via
 `Chat:TitleModel`) are **optional** — backups are disabled by default and the
 rest have sensible defaults, so you don't need to set them to run locally.
 
