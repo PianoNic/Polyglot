@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { BASE_PATH } from '../api/variables';
+import { BASE_PATH } from '../../api/variables';
 
 export interface StripeProduct {
   priceId: string;
@@ -44,8 +44,6 @@ export class BillingService {
   }
 
   createPortalSession(): Promise<PortalSession> {
-    return firstValueFrom(
-      this.http.post<PortalSession>(`${this.basePath}/api/billing/portal`, {}),
-    );
+    return firstValueFrom(this.http.post<PortalSession>(`${this.basePath}/api/billing/portal`, {}));
   }
 }

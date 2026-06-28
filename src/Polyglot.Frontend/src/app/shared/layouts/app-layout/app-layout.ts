@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { HlmSidebarImports } from '@spartan-ng/helm/sidebar';
-import { Sidenav } from '../../../sidenav/sidenav';
+import { Sidenav } from '../../components/sidenav/sidenav';
 
 @Component({
   selector: 'polyglot-app-layout',

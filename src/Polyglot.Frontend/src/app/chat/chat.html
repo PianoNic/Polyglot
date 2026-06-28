@@ -64,10 +64,10 @@
                 />
               </div>
               <div class="flex min-w-0 flex-col gap-2">
-                <span class="text-muted-foreground mt-1 text-xs font-medium leading-tight">{{
+                <span class="text-muted-foreground text-xs font-medium leading-tight">{{
                   modelName(m)
                 }}</span>
-                <polyglot-chain-of-thought [steps]="steps(m)" />
+                <pk-chain-of-thought-steps [steps]="steps(m)" />
                 <pk-message-content
                   [markdown]="true"
                   [content]="m.content"
@@ -117,10 +117,10 @@
               />
             </div>
             <div class="flex min-w-0 flex-col gap-2">
-              <span class="text-muted-foreground mt-1 text-xs font-medium leading-tight">{{
+              <span class="text-muted-foreground text-xs font-medium leading-tight">{{
                 activeModelName()
               }}</span>
-              <polyglot-chain-of-thought [steps]="store.streamSteps()" [streaming]="true" />
+              <pk-chain-of-thought-steps [steps]="store.streamSteps()" [streaming]="true" />
               @if (store.streamingText()) {
                 <pk-message-content class="bg-transparent p-0">
                   <pk-response-stream

@@ -13,7 +13,7 @@ import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmBadge } from '@spartan-ng/helm/badge';
 import { ContentHeader } from '../shared/components/content-header/content-header';
 import { UserStore } from '../shared/stores/UserStore.store';
-import { BillingService, type BillingConfig } from './billing.service';
+import { BillingService, type BillingConfig } from '../shared/services/billing.service';
 
 @Component({
   selector: 'polyglot-billing',

@@ -38,7 +38,7 @@ import type { Attachment } from '../../../libs/prompt-kit/attachment-preview';
 import { PkChatContainerImports } from '../../../libs/prompt-kit/chat-container';
 import { PkChatEmpty } from '../../../libs/prompt-kit/chat-empty/pk-chat-empty';
 import { PkFileUploadImports } from '../../../libs/prompt-kit/file-upload';
-import { ChainOfThought } from './chain-of-thought';
+import { PkChainOfThoughtStepsImports } from '../../../libs/prompt-kit/chain-of-thought-steps';
 import type { ChatEmptySuggestion } from '../../../libs/prompt-kit/chat-empty/pk-chat-empty';
 import { PkLoader } from '../../../libs/prompt-kit/loader/pk-loader';
 import { PkMessageImports } from '../../../libs/prompt-kit/message';
@@ -80,7 +80,7 @@ const SUGGESTIONS: ChatEmptySuggestion[] = [
     ContentHeader,
     PkScrollButton,
     PkTokenCounter,
-    ChainOfThought,
+    ...PkChainOfThoughtStepsImports,
   ],
   providers: [
     provideIcons({

@@ -1,5 +1,13 @@
 import { DecimalPipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  DestroyRef,
+  inject,
+  OnInit,
+  signal,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
 import { OidcSecurityService } from 'angular-auth-oidc-client';
@@ -18,17 +26,17 @@ import {
   lucidePlug,
   lucideSettings,
 } from '@ng-icons/lucide';
-import { ThemeService, ThemeMode } from '../shared/services/theme.service';
+import { ThemeService, ThemeMode } from '../../services/theme.service';
 import { HlmSidebarImports, HlmSidebarService } from '@spartan-ng/helm/sidebar';
 import { HlmDialogImports } from '@spartan-ng/helm/dialog';
 import { HlmDropdownMenuImports } from '@spartan-ng/helm/dropdown-menu';
 import { HlmAvatarImports } from '@spartan-ng/helm/avatar';
-import { AppService } from '../api/api/app.service';
-import type { AppDto } from '../api/model/appDto';
-import { ChatStore } from '../shared/stores/ChatStore.store';
-import { UserStore } from '../shared/stores/UserStore.store';
-import { PkConversationList } from '../../../libs/prompt-kit/conversation-list/pk-conversation-list';
-import type { ConversationRename } from '../../../libs/prompt-kit/conversation-list/pk-conversation-item';
+import { AppService } from '../../../api/api/app.service';
+import type { AppDto } from '../../../api/model/appDto';
+import { ChatStore } from '../../stores/ChatStore.store';
+import { UserStore } from '../../stores/UserStore.store';
+import { PkConversationList } from '../../../../../libs/prompt-kit/conversation-list/pk-conversation-list';
+import type { ConversationRename } from '../../../../../libs/prompt-kit/conversation-list/pk-conversation-item';
 
 @Component({
   selector: 'polyglot-sidenav',
@@ -84,14 +92,13 @@ export class Sidenav implements OnInit {
   }
 
   protected readonly themeMode = this.theme.mode;
-  protected readonly themeOptions: ReadonlyArray<{ mode: ThemeMode; label: string; icon: string }> = [
-    { mode: 'light', label: 'Light', icon: 'lucideSun' },
-    { mode: 'dark', label: 'Dark', icon: 'lucideMoon' },
-    { mode: 'system', label: 'System', icon: 'lucideMonitor' },
-  ];
-  protected readonly menuSide = computed(() =>
-    this.sidebarService.isMobile() ? 'top' : 'right'
-  );
+  protected readonly themeOptions: ReadonlyArray<{ mode: ThemeMode; label: string; icon: string }> =
+    [
+      { mode: 'light', label: 'Light', icon: 'lucideSun' },
+      { mode: 'dark', label: 'Dark', icon: 'lucideMoon' },
+      { mode: 'system', label: 'System', icon: 'lucideMonitor' },
+    ];
+  protected readonly menuSide = computed(() => (this.sidebarService.isMobile() ? 'top' : 'right'));
 
   private readonly userData = this.oidcSecurityService.userData;
   protected readonly user = computed(() => {
