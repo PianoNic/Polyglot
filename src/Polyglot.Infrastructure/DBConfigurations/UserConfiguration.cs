@@ -8,18 +8,18 @@ namespace Polyglot.Infrastructure.DBConfigurations
     {
         public void Configure(EntityTypeBuilder<User> builder)
         {
-            builder.HasKey(u => u.Id);
+            builder.HasKey(user => user.Id);
 
-            builder.HasIndex(u => u.ExternalId).IsUnique();
-            builder.Property(u => u.ExternalId).HasMaxLength(100);
-            builder.Property(u => u.Email).HasMaxLength(255);
-            builder.Property(u => u.DisplayName).HasMaxLength(100);
-            builder.Property(u => u.Role).HasConversion<string>().HasMaxLength(20);
-            builder.Property(u => u.StripeCustomerId).HasMaxLength(64);
-            builder.HasIndex(u => u.StripeCustomerId);
-            builder.OwnsOne(u => u.Preferences, p =>
+            builder.HasIndex(user => user.ExternalId).IsUnique();
+            builder.Property(user => user.ExternalId).HasMaxLength(100);
+            builder.Property(user => user.Email).HasMaxLength(255);
+            builder.Property(user => user.DisplayName).HasMaxLength(100);
+            builder.Property(user => user.Role).HasConversion<string>().HasMaxLength(20);
+            builder.Property(user => user.StripeCustomerId).HasMaxLength(64);
+            builder.HasIndex(user => user.StripeCustomerId);
+            builder.OwnsOne(user => user.Preferences, preferences =>
             {
-                p.Property(x => x.PreferredImageModel).HasMaxLength(128);
+                preferences.Property(preference => preference.PreferredImageModel).HasMaxLength(128);
             });
         }
     }

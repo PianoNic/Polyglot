@@ -11,7 +11,7 @@ namespace Polyglot.Application.Command
     {
         public async ValueTask<Result> Handle(SetUserLockCommand command, CancellationToken cancellationToken)
         {
-            var user = await dbContext.Users.SingleOrDefaultAsync(u => u.Id == command.UserId, cancellationToken);
+            var user = await dbContext.Users.SingleOrDefaultAsync(dbUser => dbUser.Id == command.UserId, cancellationToken);
             if (user is null)
                 return Result.Failure("User not found");
 

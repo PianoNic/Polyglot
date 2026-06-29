@@ -34,7 +34,7 @@ export class Billing implements OnInit {
 
   // The Customer Portal is only useful once the catalogue offers subscriptions.
   protected readonly hasSubscriptions = computed(
-    () => this.config()?.products.some((p) => p.mode === 'subscription') ?? false,
+    () => this.config()?.products.some((product) => product.mode === 'subscription') ?? false,
   );
 
   async ngOnInit(): Promise<void> {

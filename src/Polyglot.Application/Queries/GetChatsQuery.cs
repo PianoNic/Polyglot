@@ -16,10 +16,10 @@ namespace Polyglot.Application.Queries
         {
             var userId = await userService.GetCurrentUserIdAsync(cancellationToken);
             var chats = await dbContext.Chats
-                .Where(c => c.UserId == userId)
-                .OrderByDescending(c => c.UpdatedAt)
+                .Where(chat => chat.UserId == userId)
+                .OrderByDescending(chat => chat.UpdatedAt)
                 .ToListAsync(cancellationToken);
-            return Result<List<ChatDto>>.Success(chats.Select(c => c.ToDto()).ToList());
+            return Result<List<ChatDto>>.Success(chats.Select(chat => chat.ToDto()).ToList());
         }
     }
 }

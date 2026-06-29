@@ -208,12 +208,12 @@ namespace Polyglot.Application.Command
         private async Task<PreflightResult> PreflightAsync(SendMessageCommand command, CancellationToken cancellationToken)
         {
             var userId = await userService.GetCurrentUserIdAsync(cancellationToken);
-            var user = await dbContext.Users.SingleAsync(u => u.Id == userId, cancellationToken);
+            var user = await dbContext.Users.SingleAsync(user => user.Id == userId, cancellationToken);
 
             if (user.IsLocked)
                 return new PreflightResult { Error = "Your account has been locked. Please contact an administrator." };
 
-            var model = await dbContext.Models.SingleOrDefaultAsync(m => m.ModelId == command.Model, cancellationToken);
+            var model = await dbContext.Models.SingleOrDefaultAsync(model => model.ModelId == command.Model, cancellationToken);
             if (model is null)
                 return new PreflightResult { Error = $"Model '{command.Model}' not found" };
 
@@ -222,14 +222,14 @@ namespace Polyglot.Application.Command
             if (settings.ActiveModelListMode == ModelListMode.Whitelist)
             {
                 var isWhitelisted = await dbContext.ModelListEntries
-                    .AnyAsync(e => e.ListType == ModelListType.Whitelist && e.ModelId == command.Model, cancellationToken);
+                    .AnyAsync(entry => entry.ListType == ModelListType.Whitelist && entry.ModelId == command.Model, cancellationToken);
                 if (!isWhitelisted)
                     return new PreflightResult { Error = $"Model '{command.Model}' is not available" };
             }
             else if (settings.ActiveModelListMode == ModelListMode.Blacklist)
             {
                 var isBlacklisted = await dbContext.ModelListEntries
-                    .AnyAsync(e => e.ListType == ModelListType.Blacklist && e.ModelId == command.Model, cancellationToken);
+                    .AnyAsync(entry => entry.ListType == ModelListType.Blacklist && entry.ModelId == command.Model, cancellationToken);
                 if (isBlacklisted)
                     return new PreflightResult { Error = $"Model '{command.Model}' is not available" };
             }
@@ -243,8 +243,8 @@ namespace Polyglot.Application.Command
             if (command.ChatId is not null)
             {
                 var existing = await dbContext.Chats
-                    .Include(c => c.Messages.OrderBy(m => m.SequenceNumber))
-                    .SingleOrDefaultAsync(c => c.Id == command.ChatId.Value && c.UserId == userId, cancellationToken);
+                    .Include(chat => chat.Messages.OrderBy(message => message.SequenceNumber))
+                    .SingleOrDefaultAsync(chat => chat.Id == command.ChatId.Value && chat.UserId == userId, cancellationToken);
                 if (existing is null)
                     return new PreflightResult { Error = "Chat not found" };
                 chat = existing;
@@ -261,7 +261,7 @@ namespace Polyglot.Application.Command
                 dbContext.Chats.Add(chat);
             }
 
-            var inputCharCount = chat.Messages.Sum(m => m.Content.Length) + command.Message.Length;
+            var inputCharCount = chat.Messages.Sum(message => message.Content.Length) + command.Message.Length;
             var worstCaseCredits = await creditsService.EstimateChatCreditsAsync(
                 inputCharCount,
                 model.PromptPricePerMillion,
@@ -275,13 +275,13 @@ namespace Polyglot.Application.Command
             if (command.AttachmentIds is { Count: > 0 })
             {
                 newAttachments = await dbContext.Attachments
-                    .Where(a => command.AttachmentIds.Contains(a.Id) && a.UserId == userId && a.MessageId == null)
+                    .Where(attachment => command.AttachmentIds.Contains(attachment.Id) && attachment.UserId == userId && attachment.MessageId == null)
                     .ToListAsync(cancellationToken);
                 if (newAttachments.Count != command.AttachmentIds.Count)
                     return new PreflightResult { Error = "One or more attachments were not found" };
             }
 
-            var nextSequence = chat.Messages.Select(m => m.SequenceNumber).DefaultIfEmpty(-1).Max() + 1;
+            var nextSequence = chat.Messages.Select(message => message.SequenceNumber).DefaultIfEmpty(-1).Max() + 1;
 
             var userMessage = new Message
             {
@@ -296,17 +296,17 @@ namespace Polyglot.Application.Command
             foreach (var attachment in newAttachments)
                 attachment.MessageId = userMessage.Id;
 
-            var historyIds = chat.Messages.Where(m => m.Id != userMessage.Id).Select(m => m.Id).ToList();
+            var historyIds = chat.Messages.Where(message => message.Id != userMessage.Id).Select(message => message.Id).ToList();
             var historyAttachments = await dbContext.Attachments
-                .Where(a => a.MessageId != null && historyIds.Contains(a.MessageId.Value))
+                .Where(attachment => attachment.MessageId != null && historyIds.Contains(attachment.MessageId.Value))
                 .ToListAsync(cancellationToken);
             var attachmentsByMessage = historyAttachments
                 .Concat(newAttachments)
-                .ToLookup(a => a.MessageId!.Value);
+                .ToLookup(attachment => attachment.MessageId!.Value);
 
             var messages = new List<ChatMessage>(chat.Messages.Count + 1);
             messages.Add(new ChatMessage(ChatRole.System, SystemPrompt));
-            foreach (var msg in chat.Messages.OrderBy(m => m.SequenceNumber))
+            foreach (var msg in chat.Messages.OrderBy(message => message.SequenceNumber))
             {
                 var role = msg.Role switch
                 {
@@ -389,22 +389,22 @@ namespace Polyglot.Application.Command
             }
 
             var userAttachmentDtos = ctx.NewAttachments
-                .Select(a => new AttachmentDto
+                .Select(attachment => new AttachmentDto
                 {
-                    Id = a.Id,
-                    FileName = a.FileName,
-                    MediaType = a.MediaType,
-                    SizeBytes = a.SizeBytes,
+                    Id = attachment.Id,
+                    FileName = attachment.FileName,
+                    MediaType = attachment.MediaType,
+                    SizeBytes = attachment.SizeBytes,
                 })
                 .ToList();
 
             var assistantAttachmentDtos = generatedImages
-                .Select(a => new AttachmentDto
+                .Select(attachment => new AttachmentDto
                 {
-                    Id = a.Id,
-                    FileName = a.FileName,
-                    MediaType = a.MediaType,
-                    SizeBytes = a.SizeBytes,
+                    Id = attachment.Id,
+                    FileName = attachment.FileName,
+                    MediaType = attachment.MediaType,
+                    SizeBytes = attachment.SizeBytes,
                 })
                 .ToList();
 

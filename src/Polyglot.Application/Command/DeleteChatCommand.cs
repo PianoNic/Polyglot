@@ -13,7 +13,7 @@ namespace Polyglot.Application.Command
         public async ValueTask<Result> Handle(DeleteChatCommand command, CancellationToken cancellationToken)
         {
             var userId = await userService.GetCurrentUserIdAsync(cancellationToken);
-            var chat = await dbContext.Chats.SingleOrDefaultAsync(c => c.Id == command.ChatId && c.UserId == userId, cancellationToken);
+            var chat = await dbContext.Chats.SingleOrDefaultAsync(dbChat => dbChat.Id == command.ChatId && dbChat.UserId == userId, cancellationToken);
 
             if (chat is null)
                 return Result.Failure("Chat not found");

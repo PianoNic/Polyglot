@@ -38,7 +38,7 @@ namespace Polyglot.Infrastructure.Services
 
                 var cutoff = DateTime.UtcNow - OrphanAge;
                 var deleted = await dbContext.Attachments
-                    .Where(a => a.MessageId == null && a.CreatedAt < cutoff)
+                    .Where(attachment => attachment.MessageId == null && attachment.CreatedAt < cutoff)
                     .ExecuteDeleteAsync(cancellationToken);
 
                 if (deleted > 0)

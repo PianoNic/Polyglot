@@ -18,17 +18,17 @@ namespace Polyglot.Application.Queries
         public async ValueTask<Result<List<McpServerDto>>> Handle(GetMcpServersQuery query, CancellationToken cancellationToken)
         {
             var userId = await userService.GetCurrentUserIdAsync(cancellationToken);
-            var user = await dbContext.Users.SingleAsync(u => u.Id == userId, cancellationToken);
+            var user = await dbContext.Users.SingleAsync(user => user.Id == userId, cancellationToken);
 
             var servers = await dbContext.McpServers
-                .Where(s => s.UserId == null || s.UserId == userId)
+                .Where(server => server.UserId == null || server.UserId == userId)
                 .AsNoTracking()
-                .OrderByDescending(s => s.UserId == null)
-                .ThenBy(s => s.Name)
+                .OrderByDescending(server => server.UserId == null)
+                .ThenBy(server => server.Name)
                 .ToListAsync(cancellationToken);
 
             var dtos = servers
-                .Select(s => s.ToDto(canManage: McpServerAuthorization.CanManage(s, user)))
+                .Select(server => server.ToDto(canManage: McpServerAuthorization.CanManage(server, user)))
                 .ToList();
 
             return Result<List<McpServerDto>>.Success(dtos);

@@ -15,7 +15,7 @@ namespace Polyglot.Application.Command
     {
         public async ValueTask<Result<ModelListEntryDto>> Handle(AddModelListEntryCommand command, CancellationToken cancellationToken)
         {
-            var exists = await dbContext.ModelListEntries.AnyAsync(e => e.ModelId == command.ModelId && e.ListType == command.ListType, cancellationToken);
+            var exists = await dbContext.ModelListEntries.AnyAsync(entry => entry.ModelId == command.ModelId && entry.ListType == command.ListType, cancellationToken);
             if (exists)
                 return Result<ModelListEntryDto>.Failure($"Model '{command.ModelId}' is already on the {command.ListType} list");
 

@@ -19,7 +19,7 @@ export class Settings implements OnInit {
 
   // Image-capable models for the image-generation preference.
   protected readonly imageModels = computed(() =>
-    this.store.models().filter((m) => m.outputModalities?.includes('image')),
+    this.store.models().filter((model) => model.outputModalities?.includes('image')),
   );
 
   ngOnInit(): void {

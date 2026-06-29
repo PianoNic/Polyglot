@@ -15,7 +15,7 @@ namespace Polyglot.Application.Queries
         public async ValueTask<Result<UserDto>> Handle(GetCurrentUserQuery query, CancellationToken cancellationToken)
         {
             var userId = await userService.GetCurrentUserIdAsync(cancellationToken);
-            var user = await dbContext.Users.SingleOrDefaultAsync(u => u.Id == userId, cancellationToken);
+            var user = await dbContext.Users.SingleOrDefaultAsync(user => user.Id == userId, cancellationToken);
 
             if (user is null)
                 return Result<UserDto>.Failure("User not found");

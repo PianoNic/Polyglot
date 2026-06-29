@@ -10,8 +10,8 @@ namespace Polyglot.Infrastructure.DBConfigurations
         {
             // The Stripe event id is the natural primary key; inserting a duplicate is
             // what makes credit grants idempotent under webhook retries.
-            builder.HasKey(e => e.Id);
-            builder.Property(e => e.Id).HasMaxLength(255);
+            builder.HasKey(stripeEvent => stripeEvent.Id);
+            builder.Property(stripeEvent => stripeEvent.Id).HasMaxLength(255);
         }
     }
 }

@@ -14,10 +14,10 @@ namespace Polyglot.Application.Queries
         public async ValueTask<Result<List<UserDto>>> Handle(GetAllUsersQuery query, CancellationToken cancellationToken)
         {
             var users = await dbContext.Users
-                .OrderBy(u => u.DisplayName)
+                .OrderBy(user => user.DisplayName)
                 .ToListAsync(cancellationToken);
 
-            return Result<List<UserDto>>.Success(users.Select(u => u.ToDto()).ToList());
+            return Result<List<UserDto>>.Success(users.Select(user => user.ToDto()).ToList());
         }
     }
 }

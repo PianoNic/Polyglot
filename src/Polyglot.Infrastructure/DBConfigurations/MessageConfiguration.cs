@@ -8,15 +8,15 @@ namespace Polyglot.Infrastructure.DBConfigurations
     {
         public void Configure(EntityTypeBuilder<Message> builder)
         {
-            builder.HasKey(m => m.Id);
+            builder.HasKey(message => message.Id);
 
-            builder.HasIndex(m => new { m.ChatId, m.SequenceNumber });
-            builder.Property(m => m.Role).HasConversion<string>().HasMaxLength(20);
-            builder.Property(m => m.Model).HasMaxLength(200);
-            builder.Property(m => m.ToolCallId).HasMaxLength(100);
-            builder.Property(m => m.FinishReason).HasMaxLength(50);
-            builder.Property(m => m.ToolCalls).HasColumnType("text");
-            builder.Property(m => m.TokenUsage).HasMaxLength(50);
+            builder.HasIndex(message => new { message.ChatId, message.SequenceNumber });
+            builder.Property(message => message.Role).HasConversion<string>().HasMaxLength(20);
+            builder.Property(message => message.Model).HasMaxLength(200);
+            builder.Property(message => message.ToolCallId).HasMaxLength(100);
+            builder.Property(message => message.FinishReason).HasMaxLength(50);
+            builder.Property(message => message.ToolCalls).HasColumnType("text");
+            builder.Property(message => message.TokenUsage).HasMaxLength(50);
         }
     }
 }

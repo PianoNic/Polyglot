@@ -18,7 +18,7 @@ namespace Polyglot.Application.Command
                 return Result<CheckoutSessionDto>.Failure("Billing is not configured.");
 
             var products = await billing.GetProductsAsync(cancellationToken);
-            if (products.All(p => p.PriceId != command.PriceId))
+            if (products.All(product => product.PriceId != command.PriceId))
                 return Result<CheckoutSessionDto>.Failure("Unknown product.");
 
             var userId = await userService.GetCurrentUserIdAsync(cancellationToken);

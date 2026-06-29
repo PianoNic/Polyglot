@@ -26,11 +26,11 @@ namespace Polyglot.Infrastructure.Clients
                 var contextLength = model.GetProperty("context_length").GetInt32();
 
                 var architecture = model.GetProperty("architecture");
-                var inputModalities = architecture.GetProperty("input_modalities").EnumerateArray().Select(m => m.GetString()!).ToList();
-                var outputModalities = architecture.GetProperty("output_modalities").EnumerateArray().Select(m => m.GetString()!).ToList();
+                var inputModalities = architecture.GetProperty("input_modalities").EnumerateArray().Select(modality => modality.GetString()!).ToList();
+                var outputModalities = architecture.GetProperty("output_modalities").EnumerateArray().Select(modality => modality.GetString()!).ToList();
 
                 List<string> supportedParameters = model.TryGetProperty("supported_parameters", out var sp)
-                    ? sp.EnumerateArray().Select(p => p.GetString()!).ToList()
+                    ? sp.EnumerateArray().Select(parameter => parameter.GetString()!).ToList()
                     : [];
 
                 var pricing = model.GetProperty("pricing");

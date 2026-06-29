@@ -39,7 +39,7 @@ namespace Polyglot.Infrastructure
                 if (entry.State == EntityState.Modified)
                     entry.Entity.UpdatedAt = DateTime.UtcNow;
 
-            if (ChangeTracker.Entries<AdminSettings>().Any(e => e.State == EntityState.Deleted))
+            if (ChangeTracker.Entries<AdminSettings>().Any(entry => entry.State == EntityState.Deleted))
                 throw new InvalidOperationException("AdminSettings cannot be deleted");
         }
     }

@@ -91,7 +91,7 @@ export const ChatStore = signalStore(
   withComputed((store) => ({
     activeModel: computed<AvailableModelDto | null>(() => {
       const id = store.selectedModelId();
-      return id ? (store.models().find((m) => m.id === id) ?? null) : null;
+      return id ? (store.models().find((model) => model.id === id) ?? null) : null;
     }),
     /** Live streamed text — bind to pk-response-stream's [textStream]. */
     streamingText: store.stream.text,
@@ -107,10 +107,12 @@ export const ChatStore = signalStore(
     function touchChat(id: string | null): void {
       if (!id) return;
       const list = store.chats();
-      if (!list.some((c) => c.id === id)) return;
+      if (!list.some((chat) => chat.id === id)) return;
       const now = new Date();
       patchState(store, {
-        chats: list.map((c) => (c.id === id ? { ...c, updatedAt: now } : c)).sort(byUpdatedDesc),
+        chats: list
+          .map((chat) => (chat.id === id ? { ...chat, updatedAt: now } : chat))
+          .sort(byUpdatedDesc),
       });
     }
 
@@ -215,7 +217,7 @@ export const ChatStore = signalStore(
               chatId: store.activeChatId(),
               message: trimmed,
               model,
-              attachmentIds: attachments.map((a) => a.id),
+              attachmentIds: attachments.map((attachment) => attachment.id),
               webSearchEnabled: store.webSearchEnabled(),
             },
             'events',
@@ -244,10 +246,10 @@ export const ChatStore = signalStore(
             onToolResult: (name, output) =>
               patchState(store, (state) => {
                 const steps = [...state.streamSteps];
-                for (let i = steps.length - 1; i >= 0; i--) {
-                  const s = steps[i];
-                  if (s.type === 'tool' && s.name === name && s.output === null) {
-                    steps[i] = { ...s, output };
+                for (let index = steps.length - 1; index >= 0; index--) {
+                  const step = steps[index];
+                  if (step.type === 'tool' && step.name === name && step.output === null) {
+                    steps[index] = { ...step, output };
                     break;
                   }
                 }
@@ -262,7 +264,7 @@ export const ChatStore = signalStore(
         store.stream.end(() =>
           patchState(store, {
             messages: [
-              ...store.messages().filter((m) => m.id !== optimistic.id),
+              ...store.messages().filter((message) => message.id !== optimistic.id),
               response.userMessage,
               response.assistantMessage,
             ],
@@ -282,7 +284,7 @@ export const ChatStore = signalStore(
         const message = describeHttpError(err, ERROR_MESSAGES);
         store.stream.reset();
         patchState(store, {
-          messages: store.messages().filter((m) => m.id !== optimistic.id),
+          messages: store.messages().filter((message) => message.id !== optimistic.id),
           isSending: false,
           streamSteps: [],
           pendingAttachments: attachments,
@@ -309,24 +311,24 @@ export const ChatStore = signalStore(
 
     function removeAttachment(id: string): void {
       patchState(store, (state) => ({
-        pendingAttachments: state.pendingAttachments.filter((a) => a.id !== id),
+        pendingAttachments: state.pendingAttachments.filter((attachment) => attachment.id !== id),
       }));
     }
 
     async function renameChat(id: string, title: string): Promise<void> {
       await firstValueFrom(chatApi.apiChatIdPut(id, { title }));
       const list = store.chats();
-      if (!list.some((c) => c.id === id)) return;
+      if (!list.some((chat) => chat.id === id)) return;
       const now = new Date();
       patchState(store, {
-        chats: list.map((c) => (c.id === id ? { ...c, title, updatedAt: now } : c)),
+        chats: list.map((chat) => (chat.id === id ? { ...chat, title, updatedAt: now } : chat)),
         ...(store.activeChatId() === id ? { activeChatTitle: title } : {}),
       });
     }
 
     async function deleteChat(id: string): Promise<void> {
       await firstValueFrom(chatApi.apiChatIdDelete(id));
-      patchState(store, { chats: store.chats().filter((c) => c.id !== id) });
+      patchState(store, { chats: store.chats().filter((chat) => chat.id !== id) });
       if (inFlight?.id === id) inFlight = null;
       if (store.activeChatId() === id) newChat();
     }
@@ -349,8 +351,8 @@ export const ChatStore = signalStore(
   withHooks(() => ({})),
 );
 
-function byUpdatedDesc(a: Conversation, b: Conversation): number {
-  return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+function byUpdatedDesc(first: Conversation, second: Conversation): number {
+  return new Date(second.updatedAt).getTime() - new Date(first.updatedAt).getTime();
 }
 
 /**
@@ -365,24 +367,24 @@ function streamSend(
   return readChatStream<SendMessageDto>(
     events$,
     (data): ChatStreamFrame<SendMessageDto> | null => {
-      const p = JSON.parse(data) as ChatStreamPayload;
-      switch (p.type) {
+      const payload = JSON.parse(data) as ChatStreamPayload;
+      switch (payload.type) {
         case ChatStreamPayloadType.Chunk:
-          return p.text ? { kind: 'token', text: p.text } : null;
+          return payload.text ? { kind: 'token', text: payload.text } : null;
         case ChatStreamPayloadType.Reasoning:
-          return p.text ? { kind: 'reasoning', text: p.text } : null;
+          return payload.text ? { kind: 'reasoning', text: payload.text } : null;
         case ChatStreamPayloadType.ToolCall:
-          return p.toolName
-            ? { kind: 'tool-call', name: p.toolName, input: p.toolInput ?? '' }
+          return payload.toolName
+            ? { kind: 'tool-call', name: payload.toolName, input: payload.toolInput ?? '' }
             : null;
         case ChatStreamPayloadType.ToolResult:
-          return p.toolName
-            ? { kind: 'tool-result', name: p.toolName, output: p.toolOutput ?? '' }
+          return payload.toolName
+            ? { kind: 'tool-result', name: payload.toolName, output: payload.toolOutput ?? '' }
             : null;
         case ChatStreamPayloadType.Done:
-          return p.result ? { kind: 'done', result: p.result } : null;
+          return payload.result ? { kind: 'done', result: payload.result } : null;
         case ChatStreamPayloadType.Error:
-          return { kind: 'error', error: p.error ?? 'Send failed.' };
+          return { kind: 'error', error: payload.error ?? 'Send failed.' };
         default:
           return null;
       }

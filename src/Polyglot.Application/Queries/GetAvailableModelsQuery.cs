@@ -20,37 +20,37 @@ namespace Polyglot.Application.Queries
             if (settings.ActiveModelListMode == ModelListMode.Whitelist)
             {
                 var whitelistIds = dbContext.ModelListEntries
-                    .Where(e => e.ListType == ModelListType.Whitelist)
-                    .Select(e => e.ModelId);
-                modelsQuery = modelsQuery.Where(m => whitelistIds.Contains(m.ModelId));
+                    .Where(entry => entry.ListType == ModelListType.Whitelist)
+                    .Select(entry => entry.ModelId);
+                modelsQuery = modelsQuery.Where(model => whitelistIds.Contains(model.ModelId));
             }
             else if (settings.ActiveModelListMode == ModelListMode.Blacklist)
             {
                 var blacklistIds = dbContext.ModelListEntries
-                    .Where(e => e.ListType == ModelListType.Blacklist)
-                    .Select(e => e.ModelId);
-                modelsQuery = modelsQuery.Where(m => !blacklistIds.Contains(m.ModelId));
+                    .Where(entry => entry.ListType == ModelListType.Blacklist)
+                    .Select(entry => entry.ModelId);
+                modelsQuery = modelsQuery.Where(model => !blacklistIds.Contains(model.ModelId));
             }
 
             if (settings.MaxPricePerMillionTokens is not null)
             {
                 var cap = settings.MaxPricePerMillionTokens.Value;
-                modelsQuery = modelsQuery.Where(m => m.PromptPricePerMillion <= cap && m.CompletionPricePerMillion <= cap);
+                modelsQuery = modelsQuery.Where(model => model.PromptPricePerMillion <= cap && model.CompletionPricePerMillion <= cap);
             }
 
             var models = await modelsQuery
-                .Select(m => new AvailableModelDto
+                .Select(model => new AvailableModelDto
                 {
-                    Id = m.ModelId,
-                    Name = m.Name,
-                    Provider = m.ModelId.Contains("/") ? m.ModelId.Substring(0, m.ModelId.IndexOf("/")) : string.Empty,
+                    Id = model.ModelId,
+                    Name = model.Name,
+                    Provider = model.ModelId.Contains("/") ? model.ModelId.Substring(0, model.ModelId.IndexOf("/")) : string.Empty,
                     Currency = "USD",
-                    ContextLength = m.ContextLength,
-                    InputModalities = m.InputModalities,
-                    OutputModalities = m.OutputModalities,
-                    SupportedParameters = m.SupportedParameters,
-                    InputPricePer1M = m.PromptPricePerMillion,
-                    OutputPricePer1M = m.CompletionPricePerMillion,
+                    ContextLength = model.ContextLength,
+                    InputModalities = model.InputModalities,
+                    OutputModalities = model.OutputModalities,
+                    SupportedParameters = model.SupportedParameters,
+                    InputPricePer1M = model.PromptPricePerMillion,
+                    OutputPricePer1M = model.CompletionPricePerMillion,
                 })
                 .ToListAsync(cancellationToken);
 

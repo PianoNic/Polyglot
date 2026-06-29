@@ -47,38 +47,38 @@ namespace Polyglot.Infrastructure.Services
 
                     var fetched = await openRouter.GetModelsAsync(cancellationToken);
                     var existing = await dbContext.Models.ToListAsync(cancellationToken);
-                    var existingByModelId = existing.ToDictionary(m => m.ModelId);
-                    var fetchedIds = fetched.Select(f => f.Id).ToHashSet();
+                    var existingByModelId = existing.ToDictionary(model => model.ModelId);
+                    var fetchedIds = fetched.Select(fetchedModel => fetchedModel.Id).ToHashSet();
 
-                    foreach (var f in fetched)
+                    foreach (var fetchedModel in fetched)
                     {
-                        if (existingByModelId.TryGetValue(f.Id, out var row))
+                        if (existingByModelId.TryGetValue(fetchedModel.Id, out var row))
                         {
-                            row.Name = f.Name;
-                            row.ContextLength = f.ContextLength;
-                            row.InputModalities = f.InputModalities;
-                            row.OutputModalities = f.OutputModalities;
-                            row.SupportedParameters = f.SupportedParameters;
-                            row.PromptPricePerMillion = f.InputPricePer1M;
-                            row.CompletionPricePerMillion = f.OutputPricePer1M;
+                            row.Name = fetchedModel.Name;
+                            row.ContextLength = fetchedModel.ContextLength;
+                            row.InputModalities = fetchedModel.InputModalities;
+                            row.OutputModalities = fetchedModel.OutputModalities;
+                            row.SupportedParameters = fetchedModel.SupportedParameters;
+                            row.PromptPricePerMillion = fetchedModel.InputPricePer1M;
+                            row.CompletionPricePerMillion = fetchedModel.OutputPricePer1M;
                         }
                         else
                         {
                             dbContext.Models.Add(new Model
                             {
-                                ModelId = f.Id,
-                                Name = f.Name,
-                                ContextLength = f.ContextLength,
-                                InputModalities = f.InputModalities,
-                                OutputModalities = f.OutputModalities,
-                                SupportedParameters = f.SupportedParameters,
-                                PromptPricePerMillion = f.InputPricePer1M,
-                                CompletionPricePerMillion = f.OutputPricePer1M,
+                                ModelId = fetchedModel.Id,
+                                Name = fetchedModel.Name,
+                                ContextLength = fetchedModel.ContextLength,
+                                InputModalities = fetchedModel.InputModalities,
+                                OutputModalities = fetchedModel.OutputModalities,
+                                SupportedParameters = fetchedModel.SupportedParameters,
+                                PromptPricePerMillion = fetchedModel.InputPricePer1M,
+                                CompletionPricePerMillion = fetchedModel.OutputPricePer1M,
                             });
                         }
                     }
 
-                    foreach (var row in existing.Where(m => !fetchedIds.Contains(m.ModelId)))
+                    foreach (var row in existing.Where(model => !fetchedIds.Contains(model.ModelId)))
                     {
                         dbContext.Models.Remove(row);
                     }

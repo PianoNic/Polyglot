@@ -156,7 +156,7 @@ public class SendMessageCommandTests
 
         // Assert: 1000 - 120 = 880 (not 1000 - 500)
         var checkDb = CreateDb(dbName);
-        var updatedUser = await checkDb.Users.SingleAsync(u => u.Id == user.Id);
+        var updatedUser = await checkDb.Users.SingleAsync(candidate => candidate.Id == user.Id);
         await Assert.That(updatedUser.CreditBalance).IsEqualTo(880);
     }
 
@@ -417,7 +417,7 @@ public class SendMessageCommandTests
         var chatClient = Substitute.For<IChatClient>();
         chatClient
             .GetStreamingResponseAsync(
-                Arg.Do<IEnumerable<ChatMessage>>(m => captured = m.ToList()),
+                Arg.Do<IEnumerable<ChatMessage>>(messages => captured = messages.ToList()),
                 Arg.Any<ChatOptions>(),
                 Arg.Any<CancellationToken>())
             .Returns(FakeUpdates("Hi"));
@@ -432,10 +432,10 @@ public class SendMessageCommandTests
         await Assert.That(done.Result.UserMessage.Attachments.Count).IsEqualTo(1);
         await Assert.That(done.Result.UserMessage.Attachments[0].FileName).IsEqualTo("pic.png");
 
-        var linked = await db.Attachments.SingleAsync(a => a.Id == attachment.Id);
+        var linked = await db.Attachments.SingleAsync(candidate => candidate.Id == attachment.Id);
         await Assert.That(linked.MessageId).IsNotNull();
 
-        var sentUserMessage = captured!.Last(m => m.Role == ChatRole.User);
+        var sentUserMessage = captured!.Last(message => message.Role == ChatRole.User);
         await Assert.That(sentUserMessage.Contents.OfType<DataContent>().Count()).IsEqualTo(1);
     }
 
@@ -480,7 +480,7 @@ public class SendMessageCommandTests
         chatClient
             .GetStreamingResponseAsync(
                 Arg.Any<IEnumerable<ChatMessage>>(),
-                Arg.Do<ChatOptions?>(o => captured = o),
+                Arg.Do<ChatOptions?>(options => captured = options),
                 Arg.Any<CancellationToken>())
             .Returns(FakeUpdates("Hi"));
         var factory = Substitute.For<IChatClientFactory>();
@@ -490,7 +490,7 @@ public class SendMessageCommandTests
         await Collect(handler.Handle(new SendMessageCommand(null, "Hello", "gpt-4"), CancellationToken.None));
 
         await Assert.That(captured).IsNotNull();
-        var toolNames = captured!.Tools!.Select(t => t.Name).ToList();
+        var toolNames = captured!.Tools!.Select(tool => tool.Name).ToList();
         await Assert.That(toolNames).Contains("execute_javascript");
         await Assert.That(toolNames).Contains("generate_image");
     }
@@ -507,7 +507,7 @@ public class SendMessageCommandTests
         chatClient
             .GetStreamingResponseAsync(
                 Arg.Any<IEnumerable<ChatMessage>>(),
-                Arg.Do<ChatOptions?>(o => captured = o),
+                Arg.Do<ChatOptions?>(options => captured = options),
                 Arg.Any<CancellationToken>())
             .Returns(FakeUpdates("Hi"));
         var factory = Substitute.For<IChatClientFactory>();
@@ -583,9 +583,9 @@ public class SendMessageCommandTests
     private static async Task<List<ChatStreamEvent>> Collect(IAsyncEnumerable<ChatStreamEvent> stream)
     {
         var list = new List<ChatStreamEvent>();
-        await foreach (var e in stream)
+        await foreach (var streamEvent in stream)
         {
-            list.Add(e);
+            list.Add(streamEvent);
         }
         return list;
     }

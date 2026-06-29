@@ -25,7 +25,7 @@ namespace Polyglot.Application.Command
         public async ValueTask<Result<McpServerDto>> Handle(CreateMcpServerCommand command, CancellationToken cancellationToken)
         {
             var userId = await userService.GetCurrentUserIdAsync(cancellationToken);
-            var user = await dbContext.Users.SingleAsync(u => u.Id == userId, cancellationToken);
+            var user = await dbContext.Users.SingleAsync(dbUser => dbUser.Id == userId, cancellationToken);
 
             if (command.Global && user.Role != UserRole.Admin)
                 return Result<McpServerDto>.Failure("Only administrators can manage shared MCP servers");

@@ -58,7 +58,7 @@ export const AdminStore = signalStore(
     async function setUserLock(id: string, isLocked: boolean): Promise<void> {
       await firstValueFrom(adminApi.apiAdminUsersIdLockPut(id, { isLocked }));
       patchState(store, {
-        users: store.users().map((u) => (u.id === id ? { ...u, isLocked } : u)),
+        users: store.users().map((user) => (user.id === id ? { ...user, isLocked } : user)),
       });
     }
 
@@ -90,7 +90,7 @@ export const AdminStore = signalStore(
 
     async function removeListEntry(id: string): Promise<void> {
       await firstValueFrom(adminApi.apiAdminModelsIdDelete(id));
-      patchState(store, { listEntries: store.listEntries().filter((e) => e.id !== id) });
+      patchState(store, { listEntries: store.listEntries().filter((entry) => entry.id !== id) });
     }
 
     async function loadSettings(): Promise<void> {

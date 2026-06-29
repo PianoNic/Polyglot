@@ -8,11 +8,11 @@ namespace Polyglot.Infrastructure.DBConfigurations
     {
         public void Configure(EntityTypeBuilder<ModelListEntry> builder)
         {
-            builder.HasKey(m => m.Id);
+            builder.HasKey(entry => entry.Id);
 
-            builder.HasIndex(m => m.ModelId).IsUnique();
-            builder.Property(m => m.ModelId).HasMaxLength(200);
-            builder.Property(m => m.ListType).HasConversion<string>().HasMaxLength(20);
+            builder.HasIndex(entry => entry.ModelId).IsUnique();
+            builder.Property(entry => entry.ModelId).HasMaxLength(200);
+            builder.Property(entry => entry.ListType).HasConversion<string>().HasMaxLength(20);
         }
     }
 }

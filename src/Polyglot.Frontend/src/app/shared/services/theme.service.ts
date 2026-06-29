@@ -15,7 +15,7 @@ export class ThemeService {
   constructor() {
     window
       .matchMedia('(prefers-color-scheme: dark)')
-      .addEventListener('change', (e) => this.systemDark.set(e.matches));
+      .addEventListener('change', (event) => this.systemDark.set(event.matches));
 
     effect(() => {
       document.documentElement.classList.toggle('dark', this.resolved() === 'dark');
@@ -33,7 +33,7 @@ export class ThemeService {
   }
 
   private readStored(): ThemeMode {
-    const v = localStorage.getItem(STORAGE_KEY);
-    return v === 'light' || v === 'dark' || v === 'system' ? v : 'system';
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'system';
   }
 }

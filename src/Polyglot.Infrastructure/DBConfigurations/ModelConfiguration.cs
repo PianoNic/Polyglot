@@ -8,14 +8,14 @@ namespace Polyglot.Infrastructure.DBConfigurations
     {
         public void Configure(EntityTypeBuilder<Model> builder)
         {
-            builder.HasKey(m => m.Id);
+            builder.HasKey(model => model.Id);
 
-            builder.Property(m => m.ModelId).HasMaxLength(200);
-            builder.Property(m => m.Name).HasMaxLength(200);
-            builder.Property(m => m.PromptPricePerMillion).HasPrecision(18, 8);
-            builder.Property(m => m.CompletionPricePerMillion).HasPrecision(18, 8);
+            builder.Property(model => model.ModelId).HasMaxLength(200);
+            builder.Property(model => model.Name).HasMaxLength(200);
+            builder.Property(model => model.PromptPricePerMillion).HasPrecision(18, 8);
+            builder.Property(model => model.CompletionPricePerMillion).HasPrecision(18, 8);
 
-            builder.HasIndex(m => m.ModelId).IsUnique();
+            builder.HasIndex(model => model.ModelId).IsUnique();
         }
     }
 }

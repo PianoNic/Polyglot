@@ -8,16 +8,16 @@ namespace Polyglot.Infrastructure.DBConfigurations
     {
         public void Configure(EntityTypeBuilder<Attachment> builder)
         {
-            builder.HasKey(a => a.Id);
+            builder.HasKey(attachment => attachment.Id);
 
-            builder.HasIndex(a => a.MessageId);
-            builder.HasIndex(a => a.UserId);
-            builder.Property(a => a.FileName).HasMaxLength(255);
-            builder.Property(a => a.MediaType).HasMaxLength(100);
+            builder.HasIndex(attachment => attachment.MessageId);
+            builder.HasIndex(attachment => attachment.UserId);
+            builder.Property(attachment => attachment.FileName).HasMaxLength(255);
+            builder.Property(attachment => attachment.MediaType).HasMaxLength(100);
 
             builder.HasOne<Message>()
                 .WithMany()
-                .HasForeignKey(a => a.MessageId)
+                .HasForeignKey(attachment => attachment.MessageId)
                 .OnDelete(DeleteBehavior.Cascade);
         }
     }

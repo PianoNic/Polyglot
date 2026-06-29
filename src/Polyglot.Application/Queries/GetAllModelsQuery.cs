@@ -13,18 +13,18 @@ namespace Polyglot.Application.Queries
         public async ValueTask<Result<List<AvailableModelDto>>> Handle(GetAllModelsQuery query, CancellationToken cancellationToken)
         {
             var models = await dbContext.Models
-                .Select(m => new AvailableModelDto
+                .Select(model => new AvailableModelDto
                 {
-                    Id = m.ModelId,
-                    Name = m.Name,
-                    Provider = m.ModelId.Contains("/") ? m.ModelId.Substring(0, m.ModelId.IndexOf("/")) : string.Empty,
+                    Id = model.ModelId,
+                    Name = model.Name,
+                    Provider = model.ModelId.Contains("/") ? model.ModelId.Substring(0, model.ModelId.IndexOf("/")) : string.Empty,
                     Currency = "USD",
-                    ContextLength = m.ContextLength,
-                    InputModalities = m.InputModalities,
-                    OutputModalities = m.OutputModalities,
-                    SupportedParameters = m.SupportedParameters,
-                    InputPricePer1M = m.PromptPricePerMillion,
-                    OutputPricePer1M = m.CompletionPricePerMillion,
+                    ContextLength = model.ContextLength,
+                    InputModalities = model.InputModalities,
+                    OutputModalities = model.OutputModalities,
+                    SupportedParameters = model.SupportedParameters,
+                    InputPricePer1M = model.PromptPricePerMillion,
+                    OutputPricePer1M = model.CompletionPricePerMillion,
                 })
                 .ToListAsync(cancellationToken);
 

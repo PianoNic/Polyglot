@@ -77,22 +77,22 @@ export class Admin implements OnInit {
 
   // Image-capable models, for the default image-generation model setting.
   protected readonly imageModels = computed(() =>
-    this.store.allModels().filter((m) => m.outputModalities?.includes('image')),
+    this.store.allModels().filter((model) => model.outputModalities?.includes('image')),
   );
 
   ngOnInit(): void {
     void this.store.loadUsers();
     void this.store.loadModels();
     void this.store.loadSettings().then(() => {
-      const s = this.store.settings();
-      if (s) {
+      const settings = this.store.settings();
+      if (settings) {
         this.settingsDraft.set({
-          maxPricePerMillionTokens: s.maxPricePerMillionTokens ?? null,
-          activeModelListMode: s.activeModelListMode,
-          startingBalance: s.startingBalance,
-          costMultiplier: s.costMultiplier,
-          creditsPerUsd: s.creditsPerUsd,
-          defaultImageModel: s.defaultImageModel ?? null,
+          maxPricePerMillionTokens: settings.maxPricePerMillionTokens ?? null,
+          activeModelListMode: settings.activeModelListMode,
+          startingBalance: settings.startingBalance,
+          costMultiplier: settings.costMultiplier,
+          creditsPerUsd: settings.creditsPerUsd,
+          defaultImageModel: settings.defaultImageModel ?? null,
         });
       }
     });
@@ -146,7 +146,7 @@ export class Admin implements OnInit {
   }
 
   protected patchDraft(patch: Partial<SettingsDraft>): void {
-    this.settingsDraft.update((d) => ({ ...d, ...patch }));
+    this.settingsDraft.update((draft) => ({ ...draft, ...patch }));
   }
 
   private run(action: () => Promise<void>): Promise<void> {

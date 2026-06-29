@@ -8,19 +8,19 @@ namespace Polyglot.Infrastructure.DBConfigurations
     {
         public void Configure(EntityTypeBuilder<McpServer> builder)
         {
-            builder.HasKey(s => s.Id);
+            builder.HasKey(server => server.Id);
 
-            builder.Property(s => s.Name).IsRequired().HasMaxLength(200);
-            builder.Property(s => s.Url).IsRequired().HasMaxLength(2048);
-            builder.Property(s => s.AuthorizationHeader).HasMaxLength(4096);
+            builder.Property(server => server.Name).IsRequired().HasMaxLength(200);
+            builder.Property(server => server.Url).IsRequired().HasMaxLength(2048);
+            builder.Property(server => server.AuthorizationHeader).HasMaxLength(4096);
 
             // Owned servers disappear with their user; global servers (UserId == null) are unaffected.
             builder.HasOne<User>()
                 .WithMany()
-                .HasForeignKey(s => s.UserId)
+                .HasForeignKey(server => server.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            builder.HasIndex(s => s.UserId);
+            builder.HasIndex(server => server.UserId);
         }
     }
 }

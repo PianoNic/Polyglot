@@ -8,13 +8,13 @@ namespace Polyglot.Infrastructure.DBConfigurations
     {
         public void Configure(EntityTypeBuilder<Chat> builder)
         {
-            builder.HasKey(c => c.Id);
+            builder.HasKey(chat => chat.Id);
 
-            builder.HasIndex(c => c.UserId);
-            builder.Property(c => c.Title).HasMaxLength(200);
+            builder.HasIndex(chat => chat.UserId);
+            builder.Property(chat => chat.Title).HasMaxLength(200);
 
-            builder.HasOne(c => c.User).WithMany().HasForeignKey(c => c.UserId).OnDelete(DeleteBehavior.Cascade);
-            builder.HasMany(c => c.Messages).WithOne(m => m.Chat).HasForeignKey(m => m.ChatId).OnDelete(DeleteBehavior.Cascade);
+            builder.HasOne(chat => chat.User).WithMany().HasForeignKey(chat => chat.UserId).OnDelete(DeleteBehavior.Cascade);
+            builder.HasMany(chat => chat.Messages).WithOne(message => message.Chat).HasForeignKey(message => message.ChatId).OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

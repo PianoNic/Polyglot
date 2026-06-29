@@ -24,7 +24,7 @@ namespace Polyglot.Application.Mappers
                 Title = chat.Title,
                 CreatedAt = chat.CreatedAt,
                 UpdatedAt = chat.UpdatedAt,
-                Messages = chat.Messages.OrderBy(m => m.SequenceNumber).Select(m => m.ToDto(attachmentsByMessage[m.Id].ToList())).ToList(),
+                Messages = chat.Messages.OrderBy(message => message.SequenceNumber).Select(message => message.ToDto(attachmentsByMessage[message.Id].ToList())).ToList(),
             };
         }
     }

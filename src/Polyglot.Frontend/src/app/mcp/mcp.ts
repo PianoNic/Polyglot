@@ -70,11 +70,11 @@ export class Mcp implements OnInit {
   }
 
   protected patchDraft(patch: Partial<ServerDraft>): void {
-    this.draft.update((d) => ({ ...d, ...patch }));
+    this.draft.update((draft) => ({ ...draft, ...patch }));
   }
 
   protected patchEditDraft(patch: Partial<ServerDraft>): void {
-    this.editDraft.update((d) => ({ ...d, ...patch }));
+    this.editDraft.update((draft) => ({ ...draft, ...patch }));
   }
 
   protected addServer(): void {

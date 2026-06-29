@@ -151,7 +151,7 @@ namespace Polyglot.Infrastructure.Services
                 Prefix = "postgres/",
             }, cancellationToken);
 
-            var keys = response.S3Objects?.Select(o => o.Key) ?? [];
+            var keys = response.S3Objects?.Select(s3Object => s3Object.Key) ?? [];
             foreach (var key in SelectKeysToPrune(keys, retention))
             {
                 await s3.DeleteObjectAsync(bucket, key, cancellationToken);
@@ -164,7 +164,7 @@ namespace Polyglot.Infrastructure.Services
         public static List<string> SelectKeysToPrune(IEnumerable<string> keys, int retentionCount)
         {
             return keys
-                .OrderByDescending(k => k, StringComparer.Ordinal)
+                .OrderByDescending(key => key, StringComparer.Ordinal)
                 .Skip(Math.Max(0, retentionCount))
                 .ToList();
         }

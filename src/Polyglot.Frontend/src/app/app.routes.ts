@@ -12,10 +12,13 @@ export const routes: Routes = [
     children: [
       { path: 'chat', component: Chat },
       { path: 'chat/:id', component: Chat },
-      { path: 'mcp', loadComponent: () => import('./mcp/mcp').then((m) => m.Mcp) },
-      { path: 'settings', loadComponent: () => import('./settings/settings').then((m) => m.Settings) },
-      { path: 'billing', loadComponent: () => import('./billing/billing').then((m) => m.Billing) },
-      { path: 'admin', loadComponent: () => import('./admin/admin').then((m) => m.Admin) },
+      { path: 'mcp', loadComponent: () => import('./mcp/mcp').then((module) => module.Mcp) },
+      {
+        path: 'settings',
+        loadComponent: () => import('./settings/settings').then((module) => module.Settings),
+      },
+      { path: 'billing', loadComponent: () => import('./billing/billing').then((module) => module.Billing) },
+      { path: 'admin', loadComponent: () => import('./admin/admin').then((module) => module.Admin) },
     ],
   },
   { path: '**', redirectTo: 'chat' },

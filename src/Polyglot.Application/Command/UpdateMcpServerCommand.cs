@@ -25,9 +25,9 @@ namespace Polyglot.Application.Command
         public async ValueTask<Result<McpServerDto>> Handle(UpdateMcpServerCommand command, CancellationToken cancellationToken)
         {
             var userId = await userService.GetCurrentUserIdAsync(cancellationToken);
-            var user = await dbContext.Users.SingleAsync(u => u.Id == userId, cancellationToken);
+            var user = await dbContext.Users.SingleAsync(user => user.Id == userId, cancellationToken);
 
-            var server = await dbContext.McpServers.SingleOrDefaultAsync(s => s.Id == command.Id, cancellationToken);
+            var server = await dbContext.McpServers.SingleOrDefaultAsync(server => server.Id == command.Id, cancellationToken);
             if (server is null)
                 return Result<McpServerDto>.Failure("MCP server not found");
 

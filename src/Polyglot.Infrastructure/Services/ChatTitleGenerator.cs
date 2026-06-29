@@ -40,7 +40,7 @@ public class ChatTitleGenerator(
 
             using var scope = scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<PolyglotDbContext>();
-            var chat = await db.Chats.SingleOrDefaultAsync(c => c.Id == chatId);
+            var chat = await db.Chats.SingleOrDefaultAsync(chat => chat.Id == chatId);
             if (chat is null || chat.Title != placeholderTitle)
                 return;
 

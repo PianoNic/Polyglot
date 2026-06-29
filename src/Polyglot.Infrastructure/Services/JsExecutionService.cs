@@ -88,7 +88,7 @@ namespace Polyglot.Infrastructure.Services
             public void error(params JsValue[] args) => Write(args);
 
             private void Write(JsValue[] args) =>
-                Append(output, string.Join(" ", args.Select(a => a.ToString())));
+                Append(output, string.Join(" ", args.Select(argument => argument.ToString())));
         }
 #pragma warning restore IDE1006
     }

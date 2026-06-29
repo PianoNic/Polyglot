@@ -18,7 +18,7 @@ namespace Polyglot.Infrastructure.Services
         public async Task<McpToolset> GetToolsForUserAsync(Guid userId, CancellationToken cancellationToken)
         {
             var servers = await dbContext.McpServers
-                .Where(s => s.Enabled && (s.UserId == null || s.UserId == userId))
+                .Where(server => server.Enabled && (server.UserId == null || server.UserId == userId))
                 .AsNoTracking()
                 .ToListAsync(cancellationToken);
 

@@ -55,12 +55,12 @@ namespace Polyglot.API.Controllers
             {
                 yield return evt switch
                 {
-                    ChatStreamChunk c => new SseItem<ChatStreamPayload>(new ChatStreamPayload(ChatStreamPayloadType.Chunk, Text: c.Text), "chunk"),
-                    ChatStreamReasoning r => new SseItem<ChatStreamPayload>(new ChatStreamPayload(ChatStreamPayloadType.Reasoning, Text: r.Text), "reasoning"),
+                    ChatStreamChunk chunk => new SseItem<ChatStreamPayload>(new ChatStreamPayload(ChatStreamPayloadType.Chunk, Text: chunk.Text), "chunk"),
+                    ChatStreamReasoning reasoning => new SseItem<ChatStreamPayload>(new ChatStreamPayload(ChatStreamPayloadType.Reasoning, Text: reasoning.Text), "reasoning"),
                     ChatStreamToolCall tc => new SseItem<ChatStreamPayload>(new ChatStreamPayload(ChatStreamPayloadType.ToolCall, ToolName: tc.Name, ToolInput: tc.Input), "tool-call"),
                     ChatStreamToolResult tr => new SseItem<ChatStreamPayload>(new ChatStreamPayload(ChatStreamPayloadType.ToolResult, ToolName: tr.Name, ToolOutput: tr.Output), "tool-result"),
-                    ChatStreamDone d => new SseItem<ChatStreamPayload>(new ChatStreamPayload(ChatStreamPayloadType.Done, Result: d.Result), "done"),
-                    ChatStreamError e => new SseItem<ChatStreamPayload>(new ChatStreamPayload(ChatStreamPayloadType.Error, Error: e.Message), "error"),
+                    ChatStreamDone done => new SseItem<ChatStreamPayload>(new ChatStreamPayload(ChatStreamPayloadType.Done, Result: done.Result), "done"),
+                    ChatStreamError error => new SseItem<ChatStreamPayload>(new ChatStreamPayload(ChatStreamPayloadType.Error, Error: error.Message), "error"),
                     _ => throw new InvalidOperationException($"Unknown stream event: {evt.GetType().Name}"),
                 };
             }

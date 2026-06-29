@@ -29,7 +29,7 @@ namespace Polyglot.Infrastructure.Services
                 GetValue(userInfo, "email") ?? identity.FindFirst(ClaimTypes.Email)?.Value,
                 GetValue(userInfo, "name") ?? identity.FindFirst(ClaimTypes.Name)?.Value,
                 GetValue(userInfo, "picture") ?? identity.FindFirst("picture")?.Value,
-                GetArray(userInfo, "roles") ?? identity.FindAll("roles").Select(c => c.Value).ToList());
+                GetArray(userInfo, "roles") ?? identity.FindAll("roles").Select(claim => claim.Value).ToList());
         }
 
         private async Task<JsonElement?> FetchUserInfoAsync(CancellationToken cancellationToken)
@@ -66,7 +66,7 @@ namespace Polyglot.Infrastructure.Services
 
         private static List<string>? GetArray(JsonElement? element, string property) =>
             element?.TryGetProperty(property, out var value) == true && value.ValueKind == JsonValueKind.Array
-                ? value.EnumerateArray().Where(x => x.ValueKind == JsonValueKind.String).Select(x => x.GetString()!).ToList()
+                ? value.EnumerateArray().Where(element => element.ValueKind == JsonValueKind.String).Select(element => element.GetString()!).ToList()
                 : null;
     }
 }

@@ -15,7 +15,7 @@ namespace Polyglot.Application.Command
             if (command.Amount < 0)
                 return Result.Failure("Amount must be non-negative; use Mode = Remove to subtract");
 
-            var user = await dbContext.Users.SingleOrDefaultAsync(u => u.Id == command.UserId, cancellationToken);
+            var user = await dbContext.Users.SingleOrDefaultAsync(dbUser => dbUser.Id == command.UserId, cancellationToken);
             if (user is null)
                 return Result.Failure("User not found");
 

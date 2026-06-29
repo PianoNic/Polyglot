@@ -18,7 +18,7 @@ namespace Polyglot.Application.Command
         public async ValueTask<Result<UserDto>> Handle(UpdateUserPreferencesCommand command, CancellationToken cancellationToken)
         {
             var userId = await userService.GetCurrentUserIdAsync(cancellationToken);
-            var user = await dbContext.Users.SingleAsync(u => u.Id == userId, cancellationToken);
+            var user = await dbContext.Users.SingleAsync(dbUser => dbUser.Id == userId, cancellationToken);
 
             user.Preferences.PreferredImageModel = string.IsNullOrWhiteSpace(command.PreferredImageModel)
                 ? null

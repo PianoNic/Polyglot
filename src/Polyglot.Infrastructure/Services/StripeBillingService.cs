@@ -27,17 +27,17 @@ namespace Polyglot.Infrastructure.Services
 
         public async Task<IReadOnlyList<StripeProductInfo>> GetProductsAsync(CancellationToken cancellationToken = default)
         {
-            var configured = _options.Products.Where(p => !string.IsNullOrWhiteSpace(p.PriceId)).ToList();
+            var configured = _options.Products.Where(product => !string.IsNullOrWhiteSpace(product.PriceId)).ToList();
             var client = IsConfigured ? new StripeClient(_options.SecretKey) : null;
 
             var result = new List<StripeProductInfo>(configured.Count);
-            foreach (var p in configured)
+            foreach (var product in configured)
             {
                 var (amount, currency) = client is null
                     ? (null, null)
-                    : await GetPriceAsync(client, p.PriceId, cancellationToken);
+                    : await GetPriceAsync(client, product.PriceId, cancellationToken);
                 result.Add(new StripeProductInfo(
-                    p.PriceId, p.Name, p.Credits, p.IsSubscription ? "subscription" : "payment", amount, currency));
+                    product.PriceId, product.Name, product.Credits, product.IsSubscription ? "subscription" : "payment", amount, currency));
             }
             return result;
         }
@@ -67,10 +67,10 @@ namespace Polyglot.Infrastructure.Services
             if (!IsConfigured)
                 throw new InvalidOperationException("Stripe is not configured.");
 
-            var product = _options.Products.FirstOrDefault(p => p.PriceId == priceId)
+            var product = _options.Products.FirstOrDefault(product => product.PriceId == priceId)
                 ?? throw new InvalidOperationException($"Unknown price '{priceId}'.");
 
-            var user = await dbContext.Users.SingleOrDefaultAsync(u => u.Id == userId, cancellationToken)
+            var user = await dbContext.Users.SingleOrDefaultAsync(user => user.Id == userId, cancellationToken)
                 ?? throw new InvalidOperationException("User not found.");
 
             var client = new StripeClient(_options.SecretKey);
@@ -126,7 +126,7 @@ namespace Polyglot.Infrastructure.Services
             if (!IsConfigured)
                 throw new InvalidOperationException("Stripe is not configured.");
 
-            var user = await dbContext.Users.SingleOrDefaultAsync(u => u.Id == userId, cancellationToken)
+            var user = await dbContext.Users.SingleOrDefaultAsync(user => user.Id == userId, cancellationToken)
                 ?? throw new InvalidOperationException("User not found.");
 
             if (string.IsNullOrEmpty(user.StripeCustomerId))
@@ -194,7 +194,7 @@ namespace Polyglot.Infrastructure.Services
                         var priceId = line.Pricing?.PriceDetails?.PriceId;
                         if (priceId is null)
                             continue;
-                        var product = _options.Products.FirstOrDefault(p => p.PriceId == priceId);
+                        var product = _options.Products.FirstOrDefault(product => product.PriceId == priceId);
                         if (product is not null)
                             credits += product.Credits;
                     }

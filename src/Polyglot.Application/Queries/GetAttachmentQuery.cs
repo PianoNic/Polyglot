@@ -16,7 +16,7 @@ namespace Polyglot.Application.Queries
         {
             var userId = await userService.GetCurrentUserIdAsync(cancellationToken);
             var attachment = await dbContext.Attachments
-                .SingleOrDefaultAsync(a => a.Id == query.AttachmentId && a.UserId == userId, cancellationToken);
+                .SingleOrDefaultAsync(attachment => attachment.Id == query.AttachmentId && attachment.UserId == userId, cancellationToken);
 
             if (attachment is null)
                 return Result<AttachmentContent>.Failure("Attachment not found");

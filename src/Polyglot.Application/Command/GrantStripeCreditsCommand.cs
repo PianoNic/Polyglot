@@ -19,13 +19,13 @@ namespace Polyglot.Application.Command
             if (command.Credits <= 0)
                 return Result.Failure("Credits must be positive");
 
-            if (await dbContext.StripeEvents.AnyAsync(e => e.Id == command.EventId, cancellationToken))
+            if (await dbContext.StripeEvents.AnyAsync(stripeEvent => stripeEvent.Id == command.EventId, cancellationToken))
                 return Result.Success();
 
             var user = command.UserId is { } userId
-                ? await dbContext.Users.SingleOrDefaultAsync(u => u.Id == userId, cancellationToken)
+                ? await dbContext.Users.SingleOrDefaultAsync(user => user.Id == userId, cancellationToken)
                 : !string.IsNullOrEmpty(command.StripeCustomerId)
-                    ? await dbContext.Users.SingleOrDefaultAsync(u => u.StripeCustomerId == command.StripeCustomerId, cancellationToken)
+                    ? await dbContext.Users.SingleOrDefaultAsync(user => user.StripeCustomerId == command.StripeCustomerId, cancellationToken)
                     : null;
 
             if (user is null)

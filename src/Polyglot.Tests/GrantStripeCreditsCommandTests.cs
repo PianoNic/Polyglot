@@ -33,9 +33,9 @@ public class GrantStripeCreditsCommandTests
             new GrantStripeCreditsCommand("evt_1", user.Id, null, 500), CancellationToken.None);
 
         await Assert.That(result.IsSuccess).IsTrue();
-        var saved = await db.Users.SingleAsync(u => u.Id == user.Id);
+        var saved = await db.Users.SingleAsync(entity => entity.Id == user.Id);
         await Assert.That(saved.CreditBalance).IsEqualTo(600L);
-        await Assert.That(await db.StripeEvents.AnyAsync(e => e.Id == "evt_1")).IsTrue();
+        await Assert.That(await db.StripeEvents.AnyAsync(stripeEvent => stripeEvent.Id == "evt_1")).IsTrue();
     }
 
     [Test]
@@ -51,7 +51,7 @@ public class GrantStripeCreditsCommandTests
 
         await Assert.That(first.IsSuccess).IsTrue();
         await Assert.That(second.IsSuccess).IsTrue();
-        var saved = await db.Users.SingleAsync(u => u.Id == user.Id);
+        var saved = await db.Users.SingleAsync(entity => entity.Id == user.Id);
         await Assert.That(saved.CreditBalance).IsEqualTo(1000L);
         await Assert.That(await db.StripeEvents.CountAsync()).IsEqualTo(1);
     }
@@ -66,7 +66,7 @@ public class GrantStripeCreditsCommandTests
             new GrantStripeCreditsCommand("evt_sub", null, "cus_123", 200), CancellationToken.None);
 
         await Assert.That(result.IsSuccess).IsTrue();
-        var saved = await db.Users.SingleAsync(u => u.Id == user.Id);
+        var saved = await db.Users.SingleAsync(entity => entity.Id == user.Id);
         await Assert.That(saved.CreditBalance).IsEqualTo(250L);
     }
 

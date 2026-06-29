@@ -20,14 +20,14 @@ namespace Polyglot.Application.Queries
                 Configured = billing.IsConfigured,
                 PublishableKey = billing.PublishableKey,
                 Products = products
-                    .Select(p => new StripeProductDto
+                    .Select(product => new StripeProductDto
                     {
-                        PriceId = p.PriceId,
-                        Name = p.Name,
-                        Credits = p.Credits,
-                        Mode = p.Mode,
-                        Amount = p.Amount,
-                        Currency = p.Currency,
+                        PriceId = product.PriceId,
+                        Name = product.Name,
+                        Credits = product.Credits,
+                        Mode = product.Mode,
+                        Amount = product.Amount,
+                        Currency = product.Currency,
                     })
                     .ToList(),
             };

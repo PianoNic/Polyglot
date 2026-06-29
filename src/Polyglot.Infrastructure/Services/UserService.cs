@@ -9,7 +9,7 @@ namespace Polyglot.Infrastructure.Services
     {
         public async Task<bool> ExistsAsync(string externalId, CancellationToken cancellationToken = default)
         {
-            return await dbContext.Users.AnyAsync(u => u.ExternalId == externalId, cancellationToken);
+            return await dbContext.Users.AnyAsync(user => user.ExternalId == externalId, cancellationToken);
         }
 
         public async Task<Guid> GetCurrentUserIdAsync(CancellationToken cancellationToken = default)
@@ -18,7 +18,7 @@ namespace Polyglot.Infrastructure.Services
                 ?? throw new UnauthorizedAccessException("No authenticated user");
 
             var user = await dbContext.Users
-                .SingleOrDefaultAsync(u => u.ExternalId == oidcUser.ExternalId, cancellationToken)
+                .SingleOrDefaultAsync(user => user.ExternalId == oidcUser.ExternalId, cancellationToken)
                 ?? throw new UnauthorizedAccessException("User not found");
 
             return user.Id;
@@ -30,7 +30,7 @@ namespace Polyglot.Infrastructure.Services
                 ?? throw new UnauthorizedAccessException("No authenticated user");
 
             var user = await dbContext.Users
-                .SingleOrDefaultAsync(u => u.ExternalId == oidcUser.ExternalId, cancellationToken);
+                .SingleOrDefaultAsync(user => user.ExternalId == oidcUser.ExternalId, cancellationToken);
 
             var role = oidcUser.Roles.Contains("admin") ? UserRole.Admin : UserRole.User;
             var email = oidcUser.Email ?? string.Empty;
@@ -60,7 +60,7 @@ namespace Polyglot.Infrastructure.Services
                 catch (DbUpdateException)
                 {
                     dbContext.Entry(user).State = EntityState.Detached;
-                    if (!await dbContext.Users.AnyAsync(u => u.ExternalId == oidcUser.ExternalId, cancellationToken))
+                    if (!await dbContext.Users.AnyAsync(user => user.ExternalId == oidcUser.ExternalId, cancellationToken))
                         throw;
                 }
                 return;

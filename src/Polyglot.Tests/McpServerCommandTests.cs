@@ -210,11 +210,11 @@ public class McpServerCommandTests
         var servers = result.Value!;
         await Assert.That(servers.Count).IsEqualTo(2);
 
-        var globalDto = servers.Single(s => s.Id == global.Id);
+        var globalDto = servers.Single(server => server.Id == global.Id);
         await Assert.That(globalDto.IsGlobal).IsTrue();
         await Assert.That(globalDto.CanManage).IsFalse(); // non-admin cannot manage shared servers
 
-        var mineDto = servers.Single(s => s.Id == mine.Id);
+        var mineDto = servers.Single(server => server.Id == mine.Id);
         await Assert.That(mineDto.CanManage).IsTrue();
     }
 
