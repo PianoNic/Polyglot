@@ -1,4 +1,4 @@
-import { computed, effect, Injectable, signal } from '@angular/core';
+import { computed, Injectable, signal } from '@angular/core';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 
@@ -6,33 +6,36 @@ const STORAGE_KEY = 'polyglot.theme';
 
 @Injectable({ providedIn: 'root' })
 export class ThemeService {
-  private readonly systemDark = signal(this.readSystem());
-  readonly mode = signal<ThemeMode>(this.readStored());
-  readonly resolved = computed(() =>
+  systemDark = signal(this.readSystem());
+  mode = signal<ThemeMode>(this.readStored());
+  resolved = computed(() =>
     this.mode() === 'system' ? (this.systemDark() ? 'dark' : 'light') : this.mode(),
   );
 
   constructor() {
-    window
-      .matchMedia('(prefers-color-scheme: dark)')
-      .addEventListener('change', (event) => this.systemDark.set(event.matches));
-
-    effect(() => {
-      document.documentElement.classList.toggle('dark', this.resolved() === 'dark');
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (event) => {
+      this.systemDark.set(event.matches);
+      this.apply();
     });
-
-    effect(() => localStorage.setItem(STORAGE_KEY, this.mode()));
+    this.apply();
   }
 
   set(mode: ThemeMode): void {
     this.mode.set(mode);
+    localStorage.setItem(STORAGE_KEY, mode);
+    this.apply();
   }
 
-  private readSystem(): boolean {
+  // put the dark class on the html tag when the theme comes out dark
+  apply(): void {
+    document.documentElement.classList.toggle('dark', this.resolved() === 'dark');
+  }
+
+  readSystem(): boolean {
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
   }
 
-  private readStored(): ThemeMode {
+  readStored(): ThemeMode {
     const stored = localStorage.getItem(STORAGE_KEY);
     return stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'system';
   }

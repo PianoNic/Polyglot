@@ -1,5 +1,5 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, OnInit, signal, untracked } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
@@ -8,7 +8,9 @@ import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideArrowUp, lucideLightbulb, lucideCode, lucideBookOpen, lucideSparkles, lucidePaperclip, lucideMic, lucideChevronDown, lucideGlobe } from '@ng-icons/lucide';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmIcon } from '@spartan-ng/helm/icon';
+import { HlmDialogService } from '@spartan-ng/helm/dialog';
 import { toast } from '@spartan-ng/brain/sonner';
+import { ImagePreview } from '../shared/components/image-preview/image-preview';
 import { MessageRole } from '../api/model/messageRole';
 import type { AttachmentDto } from '../api/model/attachmentDto';
 import type { MessageDto } from '../api/model/messageDto';
@@ -84,6 +86,8 @@ export class Chat implements OnInit {
   http = inject(HttpClient);
   basePath = inject(BASE_PATH);
   store = inject(ChatStore);
+  dialog = inject(HlmDialogService);
+  destroyRef = inject(DestroyRef);
   Role = MessageRole;
 
   acceptTypes = computed(() => {
@@ -96,9 +100,6 @@ export class Chat implements OnInit {
   lastFailed = signal<string | null>(null);
   suggestions = SUGGESTIONS;
   inputLimit = 4000;
-
-  // when you click a image it opens here, null means the popup is closed
-  lightbox = signal<string | null>(null);
 
   // we dont show the dollar price becuse polyglot use credits and not real money
   modelsWithIcons = computed(() =>
@@ -116,30 +117,22 @@ export class Chat implements OnInit {
     return draftText.trim().length > 0 && draftText.length <= this.inputLimit && !this.store.isSending() && !this.store.streamingText() && !!this.store.selectedModelId();
   });
 
-  routeId = toSignal(
-    this.route.paramMap.pipe(
-      map((params) => params.get('id')),
-      distinctUntilChanged(),
-    ),
-    { initialValue: null },
-  );
-
-  constructor() {
-    effect(() => {
-      const chatId = this.routeId();
-      untracked(() => {
+  ngOnInit(): void {
+    void this.store.loadChats();
+    void this.store.loadModels();
+    this.route.paramMap
+      .pipe(
+        map((params) => params.get('id')),
+        distinctUntilChanged(),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((chatId) => {
         if (chatId) {
           void this.store.openChat(chatId);
         } else {
           this.store.newChat();
         }
       });
-    });
-  }
-
-  ngOnInit(): void {
-    void this.store.loadChats();
-    void this.store.loadModels();
   }
 
   onModelChanged(modelId: string | null): void {
@@ -231,13 +224,12 @@ export class Chat implements OnInit {
     return `${this.basePath}/api/Attachment/${id}`;
   }
 
-  // show the image big in a popup instead of opening a whole new tab
-  openLightbox(id: string): void {
-    this.lightbox.set(this.attachmentUrl(id));
-  }
-
-  closeLightbox(): void {
-    this.lightbox.set(null);
+  // open the picture in the spartan dialog, the url goes in throught the context
+  openImage(id: string): void {
+    this.dialog.open(ImagePreview, {
+      context: { url: this.attachmentUrl(id) },
+      contentClass: 'sm:max-w-2xl',
+    });
   }
 
   async openAttachment(id: string): Promise<void> {
