@@ -81,7 +81,7 @@
                           type="button"
                           class="block cursor-pointer"
                           [attr.aria-label]="'Open ' + a.fileName"
-                          (click)="openAttachment(a.id)"
+                          (click)="openLightbox(a.id)"
                         >
                           <pk-auth-image
                             [url]="attachmentUrl(a.id)"
@@ -244,3 +244,17 @@
     </div>
   </div>
 </section>
+
+@if (lightbox(); as imageUrl) {
+  <div
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+    (click)="closeLightbox()"
+  >
+    <pk-auth-image
+      [url]="imageUrl"
+      imgClass="max-h-[90vh] max-w-[90vw] object-contain"
+      class="block"
+      (click)="$event.stopPropagation()"
+    />
+  </div>
+}

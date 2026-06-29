@@ -1,30 +1,11 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  effect,
-  inject,
-  OnInit,
-  signal,
-  untracked,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, OnInit, signal, untracked } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { distinctUntilChanged, map } from 'rxjs';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import {
-  lucideArrowUp,
-  lucideLightbulb,
-  lucideCode,
-  lucideBookOpen,
-  lucideSparkles,
-  lucidePaperclip,
-  lucideMic,
-  lucideChevronDown,
-  lucideGlobe,
-} from '@ng-icons/lucide';
+import { lucideArrowUp, lucideLightbulb, lucideCode, lucideBookOpen, lucideSparkles, lucidePaperclip, lucideMic, lucideChevronDown, lucideGlobe } from '@ng-icons/lucide';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmIcon } from '@spartan-ng/helm/icon';
 import { toast } from '@spartan-ng/brain/sonner';
@@ -98,50 +79,46 @@ const SUGGESTIONS: ChatEmptySuggestion[] = [
   templateUrl: './chat.html',
 })
 export class Chat implements OnInit {
-  private readonly route = inject(ActivatedRoute);
-  private readonly router = inject(Router);
-  private readonly http = inject(HttpClient);
-  private readonly basePath = inject(BASE_PATH);
-  protected readonly store = inject(ChatStore);
-  protected readonly Role = MessageRole;
+  route = inject(ActivatedRoute);
+  router = inject(Router);
+  http = inject(HttpClient);
+  basePath = inject(BASE_PATH);
+  store = inject(ChatStore);
+  Role = MessageRole;
 
-  protected readonly acceptTypes = computed(() => {
+  acceptTypes = computed(() => {
     const documents = '.pdf,.txt,.md,.csv';
     const model = this.store.activeModel();
     return model?.inputModalities?.includes('image') ? `image/*,${documents}` : documents;
   });
 
-  protected readonly draft = signal('');
-  private readonly lastFailed = signal<string | null>(null);
-  protected readonly suggestions = SUGGESTIONS;
-  protected readonly inputLimit = 4000;
+  draft = signal('');
+  lastFailed = signal<string | null>(null);
+  suggestions = SUGGESTIONS;
+  inputLimit = 4000;
 
-  /** Models for the picker: brand icon from the vendor, no $ pricing (Polyglot
-   *  bills in credits, so the picker's per-1M price line is omitted). */
-  protected readonly modelsWithIcons = computed(() =>
-    this.store.models().map((m) => ({
-      id: m.id,
-      name: m.name,
-      provider: m.provider,
-      iconUrl: modelIconUrl(m),
+  // when you click a image it opens here, null means the popup is closed
+  lightbox = signal<string | null>(null);
+
+  // we dont show the dollar price becuse polyglot use credits and not real money
+  modelsWithIcons = computed(() =>
+    this.store.models().map((model) => ({
+      id: model.id,
+      name: model.name,
+      provider: model.provider,
+      iconUrl: modelIconUrl(model),
     })),
   );
 
-  protected readonly hasMessages = computed(() => this.store.messages().length > 0);
-  protected readonly canSend = computed(() => {
-    const d = this.draft();
-    return (
-      d.trim().length > 0 &&
-      d.length <= this.inputLimit &&
-      !this.store.isSending() &&
-      !this.store.streamingText() &&
-      !!this.store.selectedModelId()
-    );
+  hasMessages = computed(() => this.store.messages().length > 0);
+  canSend = computed(() => {
+    const draftText = this.draft();
+    return draftText.trim().length > 0 && draftText.length <= this.inputLimit && !this.store.isSending() && !this.store.streamingText() && !!this.store.selectedModelId();
   });
 
-  private readonly routeId = toSignal(
+  routeId = toSignal(
     this.route.paramMap.pipe(
-      map((p) => p.get('id')),
+      map((params) => params.get('id')),
       distinctUntilChanged(),
     ),
     { initialValue: null },
@@ -149,10 +126,10 @@ export class Chat implements OnInit {
 
   constructor() {
     effect(() => {
-      const id = this.routeId();
+      const chatId = this.routeId();
       untracked(() => {
-        if (id) {
-          void this.store.openChat(id);
+        if (chatId) {
+          void this.store.openChat(chatId);
         } else {
           this.store.newChat();
         }
@@ -165,17 +142,17 @@ export class Chat implements OnInit {
     void this.store.loadModels();
   }
 
-  protected onModelChanged(id: string | null): void {
-    if (id) {
-      this.store.setSelectedModel(id);
+  onModelChanged(modelId: string | null): void {
+    if (modelId) {
+      this.store.setSelectedModel(modelId);
     }
   }
 
-  protected onSuggestion(s: ChatEmptySuggestion): void {
-    this.draft.set(s.prompt);
+  onSuggestion(suggestion: ChatEmptySuggestion): void {
+    this.draft.set(suggestion.prompt);
   }
 
-  protected async onSubmit(): Promise<void> {
+  async onSubmit(): Promise<void> {
     if (!this.canSend()) return;
     const text = this.draft();
     this.draft.set('');
@@ -192,81 +169,79 @@ export class Chat implements OnInit {
     }
   }
 
-  protected async retry(): Promise<void> {
+  async retry(): Promise<void> {
     const text = this.lastFailed();
     if (!text) return;
     this.draft.set(text);
     await this.onSubmit();
   }
 
-  protected async onFiles(files: File[]): Promise<void> {
+  async onFiles(files: File[]): Promise<void> {
     for (const file of files) {
       const error = await this.store.uploadAttachment(file);
       if (error) toast.error(error);
     }
   }
 
-  /** Parsed Message.toolCalls JSON (ordered chain of thought), cached per id.
-   *  Tolerates the pre-reasoning shape where items were tool-only (no `type`). */
-  private readonly stepsCache = new Map<string, CotStep[]>();
+  // old messages doesnt have a type on there steps so we just say its a tool one
+  stepsCache = new Map<string, CotStep[]>();
 
-  protected steps(m: MessageDto): CotStep[] {
-    if (!m.toolCalls) return [];
-    let steps = this.stepsCache.get(m.id);
+  steps(message: MessageDto): CotStep[] {
+    if (!message.toolCalls) return [];
+    let steps = this.stepsCache.get(message.id);
     if (!steps) {
       try {
-        const parsed = JSON.parse(m.toolCalls) as CotStep[];
-        steps = parsed.map(
-          (s): CotStep =>
-            s.type ? s : { type: 'tool', name: s.name, input: s.input, output: s.output ?? null },
-        );
+        const parsed = JSON.parse(message.toolCalls) as CotStep[];
+        steps = parsed.map((step): CotStep => (step.type ? step : { type: 'tool', name: step.name, input: step.input, output: step.output ?? null }));
       } catch {
         steps = [];
       }
-      this.stepsCache.set(m.id, steps);
+      this.stepsCache.set(message.id, steps);
     }
     return steps;
   }
 
-  /** Display name of the model that produced an assistant message. */
-  protected modelName(m: MessageDto): string {
-    const id = m.model;
-    if (!id) return 'Assistant';
-    return this.store.models().find((x) => x.id === id)?.name ?? id.split('/').pop() ?? id;
+  modelName(message: MessageDto): string {
+    const modelId = message.model;
+    if (!modelId) return 'Assistant';
+    return this.store.models().find((model) => model.id === modelId)?.name ?? modelId.split('/').pop() ?? modelId;
   }
 
-  /** Brand icon URL for the model that produced a message (empty if unknown). */
-  protected modelIcon(m: MessageDto): string {
-    return m.model ? modelIconUrl({ id: m.model }) : '';
+  modelIcon(message: MessageDto): string {
+    return message.model ? modelIconUrl({ id: message.model }) : '';
   }
 
-  /** Name/icon of the currently selected model, for the in-flight reply. */
-  protected readonly activeModelName = computed(
-    () => this.store.activeModel()?.name ?? 'Assistant',
-  );
-  protected readonly activeModelIcon = computed(() => {
-    const m = this.store.activeModel();
-    return m ? modelIconUrl({ id: m.id }) : '';
+  activeModelName = computed(() => this.store.activeModel()?.name ?? 'Assistant');
+  activeModelIcon = computed(() => {
+    const model = this.store.activeModel();
+    return model ? modelIconUrl({ id: model.id }) : '';
   });
 
-  protected asChip(a: AttachmentDto): Attachment {
+  asChip(attachment: AttachmentDto): Attachment {
     return {
-      id: a.id,
-      name: a.fileName,
-      type: a.mediaType.startsWith('image/') ? 'image' : 'file',
-      size: a.sizeBytes,
-      mimeType: a.mediaType,
+      id: attachment.id,
+      name: attachment.fileName,
+      type: attachment.mediaType.startsWith('image/') ? 'image' : 'file',
+      size: attachment.sizeBytes,
+      mimeType: attachment.mediaType,
     };
   }
 
-  protected attachmentUrl(id: string): string {
+  attachmentUrl(id: string): string {
     return `${this.basePath}/api/Attachment/${id}`;
   }
 
-  protected async openAttachment(id: string): Promise<void> {
-    const blob = await firstValueFrom(
-      this.http.get(this.attachmentUrl(id), { responseType: 'blob' }),
-    );
+  // show the image big in a popup instead of opening a whole new tab
+  openLightbox(id: string): void {
+    this.lightbox.set(this.attachmentUrl(id));
+  }
+
+  closeLightbox(): void {
+    this.lightbox.set(null);
+  }
+
+  async openAttachment(id: string): Promise<void> {
+    const blob = await firstValueFrom(this.http.get(this.attachmentUrl(id), { responseType: 'blob' }));
     window.open(URL.createObjectURL(blob), '_blank');
   }
 }
