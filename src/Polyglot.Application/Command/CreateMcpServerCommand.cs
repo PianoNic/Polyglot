@@ -10,7 +10,6 @@ using Polyglot.Infrastructure.Services;
 
 namespace Polyglot.Application.Command
 {
-    // Global == true creates a shared server visible to everyone and requires the admin role.
     public record CreateMcpServerCommand(
         string Name,
         string Url,

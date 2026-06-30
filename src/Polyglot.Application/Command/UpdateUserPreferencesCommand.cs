@@ -8,8 +8,6 @@ using Polyglot.Infrastructure.Services;
 
 namespace Polyglot.Application.Command
 {
-    // Updates the current user's preferences. A null/blank PreferredImageModel clears it,
-    // falling back to the server's configured default image model.
     public record UpdateUserPreferencesCommand(string? PreferredImageModel) : ICommand<Result<UserDto>>;
 
     public class UpdateUserPreferencesCommandHandler(IUserService userService, PolyglotDbContext dbContext)

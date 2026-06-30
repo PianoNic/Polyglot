@@ -37,8 +37,6 @@ export const McpStore = signalStore(
       patchState(store, { servers, loaded: true });
     }
 
-    // The server decides ordering and the canManage/isGlobal flags, so the list is
-    // refetched after every mutation instead of being patched locally.
     async function create(command: CreateMcpServerCommand): Promise<void> {
       await firstValueFrom(mcpApi.apiMcpServersPost(command));
       await load(true);

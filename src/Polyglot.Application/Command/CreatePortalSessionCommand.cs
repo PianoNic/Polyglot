@@ -5,8 +5,6 @@ using Polyglot.Infrastructure.Services;
 
 namespace Polyglot.Application.Command
 {
-    // Starts a Stripe Customer Portal session for the current user so they can manage
-    // or cancel a subscription, returning the hosted-portal URL the client redirects to.
     public record CreatePortalSessionCommand() : ICommand<Result<PortalSessionDto>>;
 
     public class CreatePortalSessionCommandHandler(IUserService userService, IStripeBillingService billing)

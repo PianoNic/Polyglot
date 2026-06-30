@@ -17,7 +17,6 @@ public class SendMessageCommandTests
     [Test]
     public async Task Handle_NotEnoughCredits_EmitsError()
     {
-        // Arrange: user has 5 credits, but sending costs ~100
         var db = CreateDb();
         var user = await SeedUserWithCredits(db, credits: 5);
         await SeedModel(db);
@@ -29,10 +28,8 @@ public class SendMessageCommandTests
 
         var handler = CreateHandler(db, user.Id, creditsService);
 
-        // Act
         var events = await Collect(handler.Handle(new SendMessageCommand(null, "Hello", "gpt-4"), CancellationToken.None));
 
-        // Assert
         await Assert.That(events.Count).IsEqualTo(1);
         await Assert.That(events[0]).IsTypeOf<ChatStreamError>();
         await Assert.That(((ChatStreamError)events[0]).Message).Contains("Insufficient credits");
@@ -135,7 +132,6 @@ public class SendMessageCommandTests
     [Test]
     public async Task Handle_Success_DeductsActualCostNotEstimate()
     {
-        // Arrange: estimate is 500, but actual cost is 120
         var dbName = Guid.NewGuid().ToString();
         var db = CreateDb(dbName);
         var user = await SeedUserWithCredits(db, credits: 1000);
@@ -151,10 +147,8 @@ public class SendMessageCommandTests
 
         var handler = CreateHandler(db, user.Id, creditsService, FakeStreamingClient("Response"));
 
-        // Act
         await Collect(handler.Handle(new SendMessageCommand(null, "Hello", "gpt-4"), CancellationToken.None));
 
-        // Assert: 1000 - 120 = 880 (not 1000 - 500)
         var checkDb = CreateDb(dbName);
         var updatedUser = await checkDb.Users.SingleAsync(candidate => candidate.Id == user.Id);
         await Assert.That(updatedUser.CreditBalance).IsEqualTo(880);
@@ -175,12 +169,10 @@ public class SendMessageCommandTests
             .CalculateChatCreditsAsync(Arg.Any<int>(), Arg.Any<int>(), Arg.Any<decimal>(), Arg.Any<decimal>(), Arg.Any<CancellationToken>())
             .Returns(100L);
 
-        // AI stream reports 250 prompt tokens, 75 completion tokens
         var handler = CreateHandler(db, user.Id, creditsService, FakeStreamingClient(promptTokens: 250, completionTokens: 75, chunks: ["Hi"]));
 
         await Collect(handler.Handle(new SendMessageCommand(null, "Hello", "gpt-4"), CancellationToken.None));
 
-        // Should calculate cost with actual tokens (250, 75) and model prices (3, 15)
         await creditsService.Received(1).CalculateChatCreditsAsync(
             250, 75, 3m, 15m, Arg.Any<CancellationToken>());
     }
@@ -204,7 +196,6 @@ public class SendMessageCommandTests
 
         await Collect(handler.Handle(new SendMessageCommand(null, "Hello", "gpt-4"), CancellationToken.None));
 
-        // Model has PromptPrice=3, CompletionPrice=15
         await creditsService.Received(1).EstimateChatCreditsAsync(
             Arg.Any<int>(), 3m, 15m, Arg.Any<CancellationToken>());
     }
@@ -343,7 +334,6 @@ public class SendMessageCommandTests
         await db.SaveChangesAsync();
         var handler = CreateHandler(db, user.Id);
 
-        // Model has CompletionPricePerMillion = 15 > cap of 10
         var events = await Collect(handler.Handle(new SendMessageCommand(null, "Hello", "gpt-4"), CancellationToken.None));
 
         await Assert.That(events.Count).IsEqualTo(1);
@@ -578,7 +568,6 @@ public class SendMessageCommandTests
         await Assert.That(((ChatStreamError)events[0]).Message).Contains("attachments");
     }
 
-    // --- Simple factory methods (no logic, just reduce repeated boilerplate) ---
 
     private static async Task<List<ChatStreamEvent>> Collect(IAsyncEnumerable<ChatStreamEvent> stream)
     {
@@ -638,7 +627,6 @@ public class SendMessageCommandTests
             await Task.Yield();
             yield return new ChatResponseUpdate(ChatRole.Assistant, chunk);
         }
-        // Final update with usage + finish reason
         yield return new ChatResponseUpdate
         {
             FinishReason = ChatFinishReason.Stop,
@@ -663,7 +651,6 @@ public class SendMessageCommandTests
                 await Task.Yield();
                 yield return new ChatResponseUpdate(ChatRole.Assistant, chunk);
             }
-            // Final update with usage + finish reason
             yield return new ChatResponseUpdate
             {
                 FinishReason = ChatFinishReason.Stop,

@@ -120,7 +120,6 @@ export class Mcp implements OnInit {
         name: draft.name.trim(),
         url: draft.url.trim(),
         transportMode: draft.transportMode,
-        // Blank keeps the existing secret; the server never returns the value to edit.
         authorizationHeader:
           draft.authorizationHeader.trim() === '' ? null : draft.authorizationHeader.trim(),
         enabled: draft.enabled,

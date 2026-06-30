@@ -64,7 +64,6 @@ public class JsExecutionServiceTests
     {
         var service = new JsExecutionService();
 
-        // Without AllowClr, the CLR bridge globals must not exist.
         var result = service.Execute("typeof importNamespace + ' ' + typeof System");
 
         await Assert.That(result.Success).IsTrue();

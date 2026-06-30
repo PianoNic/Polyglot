@@ -26,8 +26,6 @@ export interface PortalSession {
   url: string;
 }
 
-// Billing talks to the API directly via HttpClient (like the chat stream and attachment
-// upload) rather than the generated client, which is produced from a running backend.
 @Injectable({ providedIn: 'root' })
 export class BillingService {
   private readonly http = inject(HttpClient);

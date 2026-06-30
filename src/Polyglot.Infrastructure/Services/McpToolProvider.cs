@@ -11,8 +11,6 @@ namespace Polyglot.Infrastructure.Services
         ILoggerFactory loggerFactory,
         ILogger<McpToolProvider> logger) : IMcpToolProvider
     {
-        // A misconfigured or slow server must not stall the whole chat, so each
-        // connection and tool listing is bounded.
         private static readonly TimeSpan ConnectTimeout = TimeSpan.FromSeconds(15);
 
         public async Task<McpToolset> GetToolsForUserAsync(Guid userId, CancellationToken cancellationToken)
@@ -60,8 +58,6 @@ namespace Polyglot.Infrastructure.Services
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
                 {
-                    // Swallow per-server failures (unreachable host, timeout, protocol error) so one
-                    // broken server cannot break the conversation; genuine user cancellation rethrows.
                     logger.LogWarning(ex, "Failed to load tools from MCP server {ServerName} ({ServerId})", server.Name, server.Id);
                 }
             }

@@ -10,8 +10,6 @@ namespace Polyglot.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    // Roles come from the "roles" claim (RoleClaimType configured in Program.cs,
-    // inbound claim mapping disabled), so this restricts every action to admins.
     [Authorize(Roles = "admin")]
     public class AdminController(IMediator mediator) : ControllerBase
     {

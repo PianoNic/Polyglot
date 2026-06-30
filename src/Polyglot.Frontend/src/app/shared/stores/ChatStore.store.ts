@@ -31,22 +31,15 @@ import { describeHttpError } from '../../../../libs/prompt-kit/http-error';
 
 const SELECTED_MODEL_KEY = 'polyglot.selectedModel';
 
-/** Polyglot-specific copy for 402/403 (credits/model authorization). */
 const ERROR_MESSAGES = { forbidden: 'Out of credits or not authorized for this model.' } as const;
 
 export type SendResult = { kind: 'sent'; newId: string | null } | { kind: 'error'; error: string };
 
-/** One ordered step in the assistant's chain of thought: a reasoning segment or
- *  a tool call. Matches the camelCase JSON persisted on MessageDto.toolCalls. */
 export interface CotStep {
   type: 'reasoning' | 'tool';
-  /** Reasoning text (type === 'reasoning'). */
   text?: string;
-  /** Tool name (type === 'tool'). */
   name?: string;
-  /** Tool input JSON (type === 'tool'). */
   input?: string;
-  /** Tool output; null while the tool is still running. */
   output?: string | null;
 }
 
@@ -85,17 +78,13 @@ export const initialChatStore: ChatStoreState = {
 export const ChatStore = signalStore(
   { providedIn: 'root' },
   withState(initialChatStore),
-  // The pk-response-stream reveal handshake (buffer + done + finished→commit) is
-  // owned by createStreamingMessage(); only tool-step accumulation stays local.
   withProps(() => ({ stream: createStreamingMessage() })),
   withComputed((store) => ({
     activeModel: computed<AvailableModelDto | null>(() => {
       const id = store.selectedModelId();
       return id ? (store.models().find((model) => model.id === id) ?? null) : null;
     }),
-    /** Live streamed text — bind to pk-response-stream's [textStream]. */
     streamingText: store.stream.text,
-    /** Source stream finished — bind to pk-response-stream's [done]. */
     streamDone: store.stream.done,
   })),
   withMethods((store) => {
@@ -258,9 +247,6 @@ export const ChatStore = signalStore(
           },
         );
 
-        // Hold the final messages until the reveal animation catches up. The
-        // controller runs this on pk-response-stream's (finished), or now if
-        // there was no buffered text to reveal.
         store.stream.end(() =>
           patchState(store, {
             messages: [
@@ -293,12 +279,10 @@ export const ChatStore = signalStore(
       }
     }
 
-    /** Wired to pk-response-stream's (finished): commit the held final messages. */
     function commitStream(): void {
       store.stream.finished();
     }
 
-    /** Uploads an attachment; returns an error message on failure, else null. */
     async function uploadAttachment(file: File): Promise<string | null> {
       try {
         const dto = await firstValueFrom(attachmentApi.apiAttachmentPost(file));
@@ -355,11 +339,6 @@ function byUpdatedDesc(first: Conversation, second: Conversation): number {
   return new Date(second.updatedAt).getTime() - new Date(first.updatedAt).getTime();
 }
 
-/**
- * Consumes the SSE stream from POST /api/Chat with ngx-prompt-kit's
- * readChatStream(): the adapt() maps Polyglot's ChatStreamPayload to normalised
- * frames; the library owns the frame loop + terminal done/error resolution.
- */
 function streamSend(
   events$: Observable<HttpEvent<ChatStreamPayload>>,
   handlers: ChatStreamHandlers,

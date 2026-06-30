@@ -40,8 +40,6 @@ namespace Polyglot.API.Controllers
             return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
         }
 
-        // Stripe calls this directly, so it cannot require a user token; the request is
-        // instead authenticated by verifying the Stripe-Signature against the webhook secret.
         [HttpPost("webhook")]
         [AllowAnonymous]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -58,7 +56,6 @@ namespace Polyglot.API.Controllers
             }
             catch (Exception)
             {
-                // Bad signature or unparseable payload — tell Stripe to back off.
                 return BadRequest();
             }
 

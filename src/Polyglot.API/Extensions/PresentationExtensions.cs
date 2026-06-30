@@ -11,7 +11,6 @@ namespace Polyglot.API.Extensions
                 .AddJsonOptions(options =>
                     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
-            // IResult-based responses (e.g. the SSE chat stream) serialize via Http.Json options, not MVC's
             services.ConfigureHttpJsonOptions(options =>
                 options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 

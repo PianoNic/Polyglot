@@ -99,7 +99,6 @@ namespace Polyglot.Infrastructure.Clients
             return new GeneratedImage(data, mediaType, cost);
         }
 
-        // Parses "data:<media-type>;base64,<payload>" into raw bytes + media type.
         private static (byte[] Data, string MediaType) ParseDataUrl(string dataUrl)
         {
             var comma = dataUrl.IndexOf(',');

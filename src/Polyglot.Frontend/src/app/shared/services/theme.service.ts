@@ -26,7 +26,6 @@ export class ThemeService {
     this.apply();
   }
 
-  // put the dark class on the html tag when the theme comes out dark
   apply(): void {
     document.documentElement.classList.toggle('dark', this.resolved() === 'dark');
   }

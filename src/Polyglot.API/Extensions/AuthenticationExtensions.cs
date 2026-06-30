@@ -17,8 +17,6 @@ namespace Polyglot.API.Extensions
                 {
                     options.Authority = configuration["Oidc:Authority"];
                     options.RequireHttpsMetadata = configuration.GetValue("Oidc:RequireHttpsMetadata", true);
-                    // Keep JWT claim names as-is; the legacy inbound mapping drops the "roles"
-                    // array claim, which broke admin-role detection during user sync.
                     options.MapInboundClaims = false;
                     options.TokenValidationParameters.NameClaimType = "name";
                     options.TokenValidationParameters.RoleClaimType = "roles";

@@ -212,13 +212,12 @@ public class McpServerCommandTests
 
         var globalDto = servers.Single(server => server.Id == global.Id);
         await Assert.That(globalDto.IsGlobal).IsTrue();
-        await Assert.That(globalDto.CanManage).IsFalse(); // non-admin cannot manage shared servers
+        await Assert.That(globalDto.CanManage).IsFalse();
 
         var mineDto = servers.Single(server => server.Id == mine.Id);
         await Assert.That(mineDto.CanManage).IsTrue();
     }
 
-    // --- Helpers ---
 
     private static PolyglotDbContext CreateDb()
     {

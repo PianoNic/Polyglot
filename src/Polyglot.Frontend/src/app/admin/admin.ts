@@ -75,7 +75,6 @@ export class Admin implements OnInit {
     defaultImageModel: null,
   });
 
-  // Image-capable models, for the default image-generation model setting.
   protected readonly imageModels = computed(() =>
     this.store.allModels().filter((model) => model.outputModalities?.includes('image')),
   );

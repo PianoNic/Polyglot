@@ -5,8 +5,6 @@ using Polyglot.Infrastructure.Services;
 
 namespace Polyglot.Application.Queries
 {
-    // Returns the publishable key and the catalogue of purchasable credit products
-    // for the buy-credits UI. Never exposes secret keys.
     public record GetBillingProductsQuery() : IQuery<Result<BillingConfigDto>>;
 
     public class GetBillingProductsQueryHandler(IStripeBillingService billing)

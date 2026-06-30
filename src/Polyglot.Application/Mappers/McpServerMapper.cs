@@ -8,7 +8,6 @@ namespace Polyglot.Application.Mappers
 {
     public static class McpServerAuthorization
     {
-        // Shared (global) servers are admin-only; owned servers can be managed by their owner.
         public static bool CanManage(McpServer server, User user)
             => server.UserId is null ? user.Role == UserRole.Admin : server.UserId == user.Id;
     }
@@ -33,7 +32,6 @@ namespace Polyglot.Application.Mappers
 
     public static class McpServerValidation
     {
-        // Returns an error message, or null when the input is valid.
         public static string? Validate(string? name, string? url)
         {
             if (string.IsNullOrWhiteSpace(name))
@@ -52,9 +50,6 @@ namespace Polyglot.Application.Mappers
             return null;
         }
 
-        // Blocks SSRF to internal infrastructure: loopback, link-local (incl. cloud
-        // metadata 169.254.169.254), and private/unique-local addresses. Hostnames are
-        // resolved so names that map to internal IPs are caught too.
         private static bool TargetsPrivateHost(Uri uri)
         {
             if (string.Equals(uri.Host, "localhost", StringComparison.OrdinalIgnoreCase))
@@ -67,7 +62,6 @@ namespace Polyglot.Application.Mappers
             }
             else
             {
-                // Unresolvable hosts will simply fail to connect later, so don't block them.
                 try { addresses = Dns.GetHostAddresses(uri.Host); }
                 catch { return false; }
             }

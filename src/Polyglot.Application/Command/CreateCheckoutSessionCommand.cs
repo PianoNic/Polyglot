@@ -5,8 +5,6 @@ using Polyglot.Infrastructure.Services;
 
 namespace Polyglot.Application.Command
 {
-    // Starts a Stripe Checkout session for the current user and the chosen price,
-    // returning the hosted-checkout URL the client redirects to.
     public record CreateCheckoutSessionCommand(string PriceId) : ICommand<Result<CheckoutSessionDto>>;
 
     public class CreateCheckoutSessionCommandHandler(IUserService userService, IStripeBillingService billing)

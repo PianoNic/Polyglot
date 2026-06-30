@@ -32,7 +32,6 @@ export class Billing implements OnInit {
   protected readonly notice = signal<'success' | 'cancel' | null>(null);
   protected readonly managing = signal(false);
 
-  // The Customer Portal is only useful once the catalogue offers subscriptions.
   protected readonly hasSubscriptions = computed(
     () => this.config()?.products.some((product) => product.mode === 'subscription') ?? false,
   );
@@ -40,8 +39,6 @@ export class Billing implements OnInit {
   async ngOnInit(): Promise<void> {
     void this.userStore.load();
 
-    // Stripe redirects back here with ?checkout=success|cancel. On success the
-    // webhook credits asynchronously, so re-fetch the balance.
     const checkout = this.route.snapshot.queryParamMap.get('checkout');
     if (checkout === 'success') {
       this.notice.set('success');

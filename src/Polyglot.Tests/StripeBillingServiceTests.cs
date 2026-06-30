@@ -10,9 +10,6 @@ using Polyglot.Tests.Helpers;
 
 namespace Polyglot.Tests;
 
-// Exercises the real webhook verification + parsing path (Stripe's EventUtility),
-// using self-signed payloads. Mirrors what Stripe sends so the signature, the
-// API-version tolerance, and the event-to-grant mapping are all covered.
 public class StripeBillingServiceTests
 {
     private const string Secret = "whsec_unit_test_secret";

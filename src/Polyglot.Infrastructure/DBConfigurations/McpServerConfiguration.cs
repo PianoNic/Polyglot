@@ -14,7 +14,6 @@ namespace Polyglot.Infrastructure.DBConfigurations
             builder.Property(server => server.Url).IsRequired().HasMaxLength(2048);
             builder.Property(server => server.AuthorizationHeader).HasMaxLength(4096);
 
-            // Owned servers disappear with their user; global servers (UserId == null) are unaffected.
             builder.HasOne<User>()
                 .WithMany()
                 .HasForeignKey(server => server.UserId)

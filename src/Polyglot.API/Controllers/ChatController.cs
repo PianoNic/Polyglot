@@ -1,8 +1,3 @@
-// Streaming via Server-Sent Events uses .NET 10's built-in `TypedResults.ServerSentEvents`.
-// Refs:
-//   - https://learn.microsoft.com/en-us/aspnet/core/release-notes/aspnetcore-10.0 (Server-Sent Events)
-//   - https://learn.microsoft.com/en-us/dotnet/api/microsoft.extensions.ai.ichatclient.getstreamingresponseasync
-//   - https://www.milanjovanovic.tech/blog/server-sent-events-in-aspnetcore-and-dotnet-10
 using System.Net.ServerSentEvents;
 using System.Runtime.CompilerServices;
 using Mediator;
@@ -91,11 +86,6 @@ namespace Polyglot.API.Controllers
         }
     }
 
-    /// <summary>
-    /// One frame of the chat response stream. The discriminator lives in the
-    /// payload itself (not only in the SSE event name) so the same schema works
-    /// over any transport, e.g. WebSockets.
-    /// </summary>
     public record ChatStreamPayload(ChatStreamPayloadType Type, string? Text = null, SendMessageDto? Result = null, string? Error = null, string? ToolName = null, string? ToolInput = null, string? ToolOutput = null);
 
     public enum ChatStreamPayloadType

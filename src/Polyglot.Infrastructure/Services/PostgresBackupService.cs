@@ -159,8 +159,6 @@ namespace Polyglot.Infrastructure.Services
             }
         }
 
-        // Timestamped keys sort chronologically, so ordering by key descending
-        // keeps the newest `retentionCount` backups.
         public static List<string> SelectKeysToPrune(IEnumerable<string> keys, int retentionCount)
         {
             return keys

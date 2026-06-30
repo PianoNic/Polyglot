@@ -8,8 +8,6 @@ using Polyglot.Infrastructure.Services;
 
 namespace Polyglot.Application.Queries
 {
-    // Returns the servers visible to the current user: every shared/global server plus
-    // the user's own servers, each flagged with whether the caller may manage it.
     public record GetMcpServersQuery() : IQuery<Result<List<McpServerDto>>>;
 
     public class GetMcpServersQueryHandler(IUserService userService, PolyglotDbContext dbContext)

@@ -101,7 +101,6 @@ export class Chat implements OnInit {
   suggestions = SUGGESTIONS;
   inputLimit = 4000;
 
-  // we dont show the dollar price becuse polyglot use credits and not real money
   modelsWithIcons = computed(() =>
     this.store.models().map((model) => ({
       id: model.id,
@@ -176,7 +175,6 @@ export class Chat implements OnInit {
     }
   }
 
-  // old messages doesnt have a type on there steps so we just say its a tool one
   stepsCache = new Map<string, CotStep[]>();
 
   steps(message: MessageDto): CotStep[] {
@@ -224,7 +222,6 @@ export class Chat implements OnInit {
     return `${this.basePath}/api/Attachment/${id}`;
   }
 
-  // open the picture in the spartan dialog, the url goes in throught the context
   openImage(id: string): void {
     this.dialog.open(ImagePreview, {
       context: { url: this.attachmentUrl(id) },

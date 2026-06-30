@@ -21,8 +21,6 @@ namespace Polyglot.Infrastructure.Services
         public bool IsConfigured => _options.IsConfigured;
         public string? PublishableKey => _options.PublishableKey;
 
-        // The configured amount/currency rarely changes, so a fetched price is cached for
-        // the process lifetime to keep the products endpoint off Stripe's API on every load.
         private static readonly ConcurrentDictionary<string, (long? Amount, string? Currency)> PriceCache = new();
 
         public async Task<IReadOnlyList<StripeProductInfo>> GetProductsAsync(CancellationToken cancellationToken = default)
@@ -56,7 +54,6 @@ namespace Polyglot.Infrastructure.Services
             }
             catch (Exception ex)
             {
-                // Don't fail the whole catalogue if one price can't be read — show it without a price.
                 logger.LogWarning(ex, "Could not fetch Stripe price {PriceId}", priceId);
                 return (null, null);
             }
@@ -75,7 +72,6 @@ namespace Polyglot.Infrastructure.Services
 
             var client = new StripeClient(_options.SecretKey);
 
-            // Reuse a Stripe customer per user so subscriptions and purchases stay linked.
             if (string.IsNullOrEmpty(user.StripeCustomerId))
             {
                 var customer = await new CustomerService(client).CreateAsync(new CustomerCreateOptions
@@ -153,10 +149,6 @@ namespace Polyglot.Infrastructure.Services
             if (string.IsNullOrWhiteSpace(_options.WebhookSecret))
                 throw new InvalidOperationException("Stripe webhook secret is not configured.");
 
-            // Throws StripeException when the signature does not verify. We do not throw on
-            // API-version mismatch: the account's pinned version may differ from the SDK's,
-            // and the fields we read (mode, payment status, metadata, customer, line prices)
-            // are stable across versions.
             var stripeEvent = EventUtility.ConstructEvent(
                 json, signatureHeader, _options.WebhookSecret, throwOnApiVersionMismatch: false);
 
@@ -164,8 +156,6 @@ namespace Polyglot.Infrastructure.Services
             {
                 case EventTypes.CheckoutSessionCompleted:
                 {
-                    // One-time credit packs are granted here. Subscriptions (including their
-                    // first charge) are granted from invoice.paid instead, so skip them.
                     if (stripeEvent.Data.Object is not Session session || session.Mode != "payment")
                         return null;
                     if (!string.Equals(session.PaymentStatus, "paid", StringComparison.OrdinalIgnoreCase))
@@ -183,8 +173,6 @@ namespace Polyglot.Infrastructure.Services
 
                 case EventTypes.InvoicePaid:
                 {
-                    // Subscription create + every renewal: map each line's price back to a
-                    // configured product and sum the credits granted for this invoice.
                     if (stripeEvent.Data.Object is not Invoice invoice)
                         return null;
 

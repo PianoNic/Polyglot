@@ -12,12 +12,6 @@ namespace Polyglot.Infrastructure.Services
 
     public record JsExecutionResult(bool Success, string Output, string? Error);
 
-    /// <summary>
-    /// Executes model-generated JavaScript in-process with Jint. A fresh engine
-    /// is created per call with no host objects beyond a console shim, so
-    /// scripts get no CLR, filesystem, or network access; runaway scripts are
-    /// stopped by time, memory, and recursion limits.
-    /// </summary>
     public class JsExecutionService(TimeSpan? timeout = null) : IJsExecutionService
     {
         private const int MaxOutputChars = 32_768;
@@ -58,7 +52,6 @@ namespace Polyglot.Infrastructure.Services
             }
             catch (Exception ex)
             {
-                // Parse errors and memory/recursion limit violations land here.
                 return new JsExecutionResult(false, Render(output), ex.Message);
             }
         }
@@ -77,8 +70,6 @@ namespace Polyglot.Infrastructure.Services
                 : text;
         }
 
-        // Exposed to scripts as `console`; Jint binds the lowercase method
-        // names directly, matching the browser API.
 #pragma warning disable IDE1006
         private class ConsoleShim(StringBuilder output)
         {

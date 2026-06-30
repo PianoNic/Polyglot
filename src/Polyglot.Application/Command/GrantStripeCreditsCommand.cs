@@ -6,8 +6,6 @@ using Polyglot.Infrastructure;
 
 namespace Polyglot.Application.Command
 {
-    // Grants credits from a verified Stripe webhook event. Idempotent: the Stripe event
-    // id is recorded so retried deliveries of the same event credit the user only once.
     public record GrantStripeCreditsCommand(string EventId, Guid? UserId, string? StripeCustomerId, long Credits)
         : ICommand<Result>;
 

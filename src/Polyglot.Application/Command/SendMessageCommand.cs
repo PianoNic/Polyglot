@@ -32,11 +32,6 @@ namespace Polyglot.Application.Command
     {
         private const string FallbackImageModel = "google/gemini-2.5-flash-image";
 
-        // Prepended to every request. Generated images are delivered as real
-        // attachments shown below the reply, so the model must not try to embed
-        // or mark the image itself: no inline image markup (which renders as a
-        // broken image) and no textual placeholder/caption (like "(Image of a
-        // cow)") standing in for where the image should go.
         private const string SystemPrompt =
             "You are a helpful assistant inside a chat application. When you call the generate_image tool, "
             + "the resulting image is automatically attached to your reply and displayed to the user below your message. "
@@ -45,8 +40,6 @@ namespace Polyglot.Application.Command
             + "\"(image here)\" or \"(Image of a cow)\". Write your reply as if the image is already shown; you may "
             + "mention it naturally in a sentence, but never insert a standalone placeholder for it.";
 
-        // Tool steps are serialized for human display in the chat UI, so keep
-        // characters like '+' readable instead of \u-escaped.
         private static readonly JsonSerializerOptions ToolStepJsonOptions = new(JsonSerializerOptions.Web)
         {
             Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
@@ -63,30 +56,19 @@ namespace Polyglot.Application.Command
             }
 
             var ctx = preflight.Context!;
-            // OpenRouter's ":online" suffix attaches its web plugin to the request;
-            // validation and pricing stay keyed to the base model id.
             var chatClient = chatClientFactory.Create(command.WebSearchEnabled ? $"{command.Model}:online" : command.Model);
 
             var assistantContent = new StringBuilder();
             UsageDetails? usage = null;
             ChatFinishReason? finishReason = null;
             string? streamError = null;
-            // Ordered chain-of-thought: reasoning segments interleaved with tool
-            // calls, in the order they occur. Serialized onto Message.ToolCalls.
             var steps = new List<CotStep>();
             var pendingToolCalls = new Dictionary<string, CotStep>();
             CotStep? currentReasoning = null;
 
-            // Built-in image-generation tool: images it produces are collected here and
-            // linked to the assistant message once it is created, and their upstream cost
-            // is billed in credits during finalize.
             var generatedImages = new List<Attachment>();
             decimal imageCostUsd = 0m;
 
-            // Tool gating: only models that advertise tool support get tools attached.
-            // The built-in JavaScript and image-generation tools run in-process (using the
-            // server's OpenRouter key and billing the user); MCP tools come from the user's
-            // own and shared servers and are appended, with the toolset disposed below.
             ChatOptions? chatOptions = null;
             var mcpToolset = McpToolset.Empty;
             if (ctx.Model.SupportedParameters.Contains("tools"))
@@ -128,10 +110,6 @@ namespace Polyglot.Application.Command
                     if (update.FinishReason is { } fr)
                         finishReason = fr;
 
-                    // Reasoning arrives in OpenRouter's non-standard delta.reasoning
-                    // field, which the OpenAI SDK does not surface as content; pull it
-                    // from the raw update. Consecutive reasoning deltas coalesce into
-                    // one step until a tool call breaks the segment.
                     var reasoningDelta = ExtractReasoningDelta(update);
                     if (!string.IsNullOrEmpty(reasoningDelta))
                     {
@@ -154,8 +132,6 @@ namespace Polyglot.Application.Command
                                 break;
                             case FunctionCallContent fcc:
                                 {
-                                    // A tool call closes the current reasoning segment; later
-                                    // reasoning starts a fresh step after the tool.
                                     currentReasoning = null;
                                     var input = fcc.Arguments is null ? string.Empty : JsonSerializer.Serialize(fcc.Arguments, ToolStepJsonOptions);
                                     var step = new CotStep { Type = "tool", Name = fcc.Name, Input = input };
@@ -174,7 +150,6 @@ namespace Polyglot.Application.Command
                                     break;
                                 }
                             case UsageContent uc:
-                                // Tool calls produce one completion per loop turn; bill them all.
                                 if (usage is null)
                                 {
                                     usage = uc.Details;
@@ -342,7 +317,6 @@ namespace Polyglot.Application.Command
                 ctx.Model.CompletionPricePerMillion,
                 cancellationToken);
 
-            // Image generation is billed separately from the OpenRouter cost it reported.
             var imageCredits = imageCostUsd > 0m
                 ? await creditsService.FromUsdAsync(imageCostUsd, cancellationToken)
                 : 0L;
@@ -363,7 +337,6 @@ namespace Polyglot.Application.Command
             ctx.Chat.Messages.Add(assistantMessage);
             dbContext.Messages.Add(assistantMessage);
 
-            // Attach any images the generate_image tool produced to this assistant message.
             foreach (var image in generatedImages)
             {
                 image.MessageId = assistantMessage.Id;
@@ -432,10 +405,6 @@ namespace Polyglot.Application.Command
                 + "There is no network, filesystem, DOM, or module access; use console.log to print intermediate results. "
                 + "If execution fails, the error is returned so the code can be fixed and retried.");
 
-        // Built-in image-generation tool. Runs in-process so it can use the server's
-        // OpenRouter key and bill the user: generated images are added to the shared list
-        // (linked to the assistant message in FinalizeAsync) and their cost is reported
-        // back via addCost for credit billing.
         private AIFunction CreateImageGenerationTool(PreflightContext ctx, List<Attachment> generatedImages, Action<decimal> addCost)
         {
             var imageModel = !string.IsNullOrWhiteSpace(ctx.User.Preferences?.PreferredImageModel)
@@ -484,8 +453,6 @@ namespace Polyglot.Application.Command
                 "Generates an image from a text description and attaches it to your reply. Provide a detailed prompt describing what the image should show.");
         }
 
-        // Images and PDFs go to the model as base64 data URIs (DataContent);
-        // plain-text files are inlined as prompt text.
         private static AIContent ToAIContent(Attachment attachment)
         {
             if (attachment.MediaType.StartsWith("text/", StringComparison.OrdinalIgnoreCase))
@@ -494,9 +461,6 @@ namespace Polyglot.Application.Command
             return new DataContent(attachment.Data, attachment.MediaType);
         }
 
-        // One ordered chain-of-thought step, serialized onto Message.ToolCalls so
-        // the sequence (reasoning, tool, reasoning, ...) re-renders on reload.
-        // Type is "reasoning" (uses Text) or "tool" (uses Name/Input/Output).
         private class CotStep
         {
             public string Type { get; set; } = "";
@@ -506,9 +470,6 @@ namespace Polyglot.Application.Command
             public string? Output { get; set; }
         }
 
-        // OpenRouter streams reasoning in delta.reasoning (or delta.reasoning_details[].text),
-        // which the OpenAI SDK drops. Recover it from the raw update. reasoning and
-        // reasoning_details carry the same text, so prefer reasoning and only fall back.
         private static string? ExtractReasoningDelta(ChatResponseUpdate update)
         {
             if (update.RawRepresentation is null) return null;
@@ -539,7 +500,6 @@ namespace Polyglot.Application.Command
             }
             catch
             {
-                // Reasoning is best-effort; never fail the stream over it.
             }
             return null;
         }

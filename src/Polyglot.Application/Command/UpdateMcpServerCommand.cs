@@ -9,8 +9,6 @@ using Polyglot.Infrastructure.Services;
 
 namespace Polyglot.Application.Command
 {
-    // AuthorizationHeader convention: null keeps the existing secret, an empty string clears it,
-    // and any other value replaces it. This lets the UI edit a server without re-entering the secret.
     public record UpdateMcpServerCommand(
         Guid Id,
         string Name,

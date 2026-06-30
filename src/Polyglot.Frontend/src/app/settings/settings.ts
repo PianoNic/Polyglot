@@ -17,7 +17,6 @@ export class Settings implements OnInit {
   protected readonly store = inject(ChatStore);
   protected readonly userStore = inject(UserStore);
 
-  // Image-capable models for the image-generation preference.
   protected readonly imageModels = computed(() =>
     this.store.models().filter((model) => model.outputModalities?.includes('image')),
   );

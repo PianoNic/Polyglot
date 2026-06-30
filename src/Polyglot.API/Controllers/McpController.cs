@@ -10,9 +10,6 @@ namespace Polyglot.API.Controllers
     [Route("api/[controller]")]
     public class McpController(IMediator mediator) : ControllerBase
     {
-        // Returns the shared (global) servers plus the caller's own servers. Each entry
-        // carries a canManage flag; creating or editing a global server requires admin rights,
-        // which the command handlers enforce.
         [HttpGet("servers")]
         [ProducesResponseType(typeof(List<McpServerDto>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetServers(CancellationToken cancellationToken)

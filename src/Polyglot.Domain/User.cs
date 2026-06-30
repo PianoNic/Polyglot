@@ -11,7 +11,6 @@ namespace Polyglot.Domain
         public string? AvatarUrl { get; set; }
         public long CreditBalance { get; set; }
         public bool IsLocked { get; set; }
-        // Stripe customer id, created lazily the first time the user starts a checkout.
         public string? StripeCustomerId { get; set; }
         public required UserPreferences Preferences { get; set; } = new UserPreferences();
     }

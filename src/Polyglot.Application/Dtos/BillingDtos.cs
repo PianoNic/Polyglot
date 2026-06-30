@@ -7,7 +7,6 @@ namespace Polyglot.Application.Dtos
         public required long Credits { get; init; }
         public required string Mode { get; init; }
 
-        // Price in the currency's minor unit (e.g. cents); null if unavailable.
         public long? Amount { get; init; }
         public string? Currency { get; init; }
     }
