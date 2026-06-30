@@ -6,7 +6,7 @@ using Polyglot.Domain.Enums;
 
 namespace Polyglot.Infrastructure.Services
 {
-    public sealed class McpToolProvider(
+    public class McpToolProvider(
         PolyglotDbContext dbContext,
         ILoggerFactory loggerFactory,
         ILogger<McpToolProvider> logger) : IMcpToolProvider

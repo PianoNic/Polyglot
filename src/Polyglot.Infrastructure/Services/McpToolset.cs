@@ -5,7 +5,7 @@ namespace Polyglot.Infrastructure.Services
     // Holds the MCP tools discovered for a chat turn together with the live client
     // connections that back them, so the connections stay open for the whole
     // tool-calling loop and are torn down together afterwards.
-    public sealed class McpToolset(IReadOnlyList<AIFunction> tools, IReadOnlyList<IAsyncDisposable> connections) : IAsyncDisposable
+    public class McpToolset(IReadOnlyList<AIFunction> tools, IReadOnlyList<IAsyncDisposable> connections) : IAsyncDisposable
     {
         public static readonly McpToolset Empty = new([], []);
 

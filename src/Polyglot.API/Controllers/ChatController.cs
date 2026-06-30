@@ -96,7 +96,7 @@ namespace Polyglot.API.Controllers
     /// payload itself (not only in the SSE event name) so the same schema works
     /// over any transport, e.g. WebSockets.
     /// </summary>
-    public sealed record ChatStreamPayload(ChatStreamPayloadType Type, string? Text = null, SendMessageDto? Result = null, string? Error = null, string? ToolName = null, string? ToolInput = null, string? ToolOutput = null);
+    public record ChatStreamPayload(ChatStreamPayloadType Type, string? Text = null, SendMessageDto? Result = null, string? Error = null, string? ToolName = null, string? ToolInput = null, string? ToolOutput = null);
 
     public enum ChatStreamPayloadType
     {

@@ -10,7 +10,7 @@ namespace Polyglot.Infrastructure.Services
         JsExecutionResult Execute(string code, CancellationToken cancellationToken = default);
     }
 
-    public sealed record JsExecutionResult(bool Success, string Output, string? Error);
+    public record JsExecutionResult(bool Success, string Output, string? Error);
 
     /// <summary>
     /// Executes model-generated JavaScript in-process with Jint. A fresh engine
@@ -80,7 +80,7 @@ namespace Polyglot.Infrastructure.Services
         // Exposed to scripts as `console`; Jint binds the lowercase method
         // names directly, matching the browser API.
 #pragma warning disable IDE1006
-        private sealed class ConsoleShim(StringBuilder output)
+        private class ConsoleShim(StringBuilder output)
         {
             public void log(params JsValue[] args) => Write(args);
             public void info(params JsValue[] args) => Write(args);

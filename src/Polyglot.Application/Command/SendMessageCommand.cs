@@ -21,12 +21,12 @@ namespace Polyglot.Application.Command
     public record SendMessageCommand(Guid? ChatId, string Message, string Model, List<Guid>? AttachmentIds = null, bool WebSearchEnabled = false) : IStreamCommand<ChatStreamEvent>;
 
     public abstract record ChatStreamEvent;
-    public sealed record ChatStreamChunk(string Text) : ChatStreamEvent;
-    public sealed record ChatStreamReasoning(string Text) : ChatStreamEvent;
-    public sealed record ChatStreamToolCall(string Name, string Input) : ChatStreamEvent;
-    public sealed record ChatStreamToolResult(string Name, string Output) : ChatStreamEvent;
-    public sealed record ChatStreamDone(SendMessageDto Result) : ChatStreamEvent;
-    public sealed record ChatStreamError(string Message) : ChatStreamEvent;
+    public record ChatStreamChunk(string Text) : ChatStreamEvent;
+    public record ChatStreamReasoning(string Text) : ChatStreamEvent;
+    public record ChatStreamToolCall(string Name, string Input) : ChatStreamEvent;
+    public record ChatStreamToolResult(string Name, string Output) : ChatStreamEvent;
+    public record ChatStreamDone(SendMessageDto Result) : ChatStreamEvent;
+    public record ChatStreamError(string Message) : ChatStreamEvent;
 
     public class SendMessageCommandHandler(IUserService userService, PolyglotDbContext dbContext, IChatClientFactory chatClientFactory, ICreditsService creditsService, IChatTitleGenerator titleGenerator, IJsExecutionService jsExecutionService, IMcpToolProvider mcpToolProvider, IOpenRouterClient openRouterClient, IConfiguration configuration) : IStreamCommandHandler<SendMessageCommand, ChatStreamEvent>
     {
@@ -497,7 +497,7 @@ namespace Polyglot.Application.Command
         // One ordered chain-of-thought step, serialized onto Message.ToolCalls so
         // the sequence (reasoning, tool, reasoning, ...) re-renders on reload.
         // Type is "reasoning" (uses Text) or "tool" (uses Name/Input/Output).
-        private sealed class CotStep
+        private class CotStep
         {
             public string Type { get; set; } = "";
             public string? Text { get; set; }
@@ -544,13 +544,13 @@ namespace Polyglot.Application.Command
             return null;
         }
 
-        private sealed class PreflightResult
+        private class PreflightResult
         {
             public string? Error { get; init; }
             public PreflightContext? Context { get; init; }
         }
 
-        private sealed record PreflightContext(
+        private record PreflightContext(
             Chat Chat,
             Domain.Model Model,
             User User,
