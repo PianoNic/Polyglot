@@ -1,5 +1,8 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Polyglot.Infrastructure.Services;
 using System.Security.Claims;
 
@@ -7,6 +10,35 @@ namespace Polyglot.API.Extensions
 {
     public static class AuthenticationExtensions
     {
+        public static IServiceCollection AddPolyglotAuthentication(this IServiceCollection services, IConfiguration configuration)
+        {
+            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                .AddJwtBearer(options =>
+                {
+                    options.Authority = configuration["Oidc:Authority"];
+                    options.RequireHttpsMetadata = configuration.GetValue("Oidc:RequireHttpsMetadata", true);
+                    // Keep JWT claim names as-is; the legacy inbound mapping drops the "roles"
+                    // array claim, which broke admin-role detection during user sync.
+                    options.MapInboundClaims = false;
+                    options.TokenValidationParameters.NameClaimType = "name";
+                    options.TokenValidationParameters.RoleClaimType = "roles";
+                    options.TokenValidationParameters.ValidateAudience = false;
+                })
+                .AddUserSync();
+
+            return services;
+        }
+
+        public static IServiceCollection AddPolyglotAuthorization(this IServiceCollection services)
+        {
+            services.AddAuthorization(options =>
+                options.FallbackPolicy = new AuthorizationPolicyBuilder()
+                    .RequireAuthenticatedUser()
+                    .Build());
+
+            return services;
+        }
+
         public static AuthenticationBuilder AddUserSync(this AuthenticationBuilder builder)
         {
             builder.Services.PostConfigure<JwtBearerOptions>(
