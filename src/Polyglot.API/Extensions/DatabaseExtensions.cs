@@ -1,8 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Polyglot.Infrastructure;
 
-namespace Polyglot.Infrastructure.Extensions
+namespace Polyglot.API.Extensions
 {
     public static class DatabaseExtensions
     {

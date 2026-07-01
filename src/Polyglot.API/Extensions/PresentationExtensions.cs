@@ -14,8 +14,6 @@ namespace Polyglot.API.Extensions
             services.ConfigureHttpJsonOptions(options =>
                 options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
-            services.AddHealthChecks();
-
             return services;
         }
     }

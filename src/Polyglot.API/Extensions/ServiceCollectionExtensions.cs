@@ -3,9 +3,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Polyglot.Infrastructure.BackgroundServices;
 using Polyglot.Infrastructure.Clients;
 using Polyglot.Infrastructure.Configuration;
+using Polyglot.Infrastructure.Extensions;
 using Polyglot.Infrastructure.Services;
 
-namespace Polyglot.Infrastructure.Extensions
+namespace Polyglot.API.Extensions
 {
     public static class ServiceCollectionExtensions
     {
@@ -13,7 +14,6 @@ namespace Polyglot.Infrastructure.Extensions
         {
             services.AddHttpClient();
             services.AddHttpContextAccessor();
-
             services.AddScoped<IOidcService, OidcService>();
             services.AddScoped<IUserService, UserService>();
             services.AddScoped<IOpenRouterClient, OpenRouterClient>();
@@ -23,10 +23,8 @@ namespace Polyglot.Infrastructure.Extensions
             services.AddScoped<IMcpToolProvider, McpToolProvider>();
             services.AddScoped<IStripeBillingService, StripeBillingService>();
             services.Configure<StripeOptions>(configuration.GetSection(StripeOptions.SectionName));
-
             services.AddAgentFramework(configuration);
             services.AddHostedServices();
-
             return services;
         }
     }

@@ -1,5 +1,4 @@
 using Polyglot.API.Extensions;
-using Polyglot.Infrastructure.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,6 +23,5 @@ app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-app.MapHealthChecks("/healthz").AllowAnonymous();
 
 app.Run();
