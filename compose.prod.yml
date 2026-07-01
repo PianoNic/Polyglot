@@ -1,12 +1,13 @@
 name: polyglot
 
 # Production stack. Pangolin (running separately on the VPS) terminates TLS and
-# proxies the public domains to `frontend` (app) and `pocket-id` (auth) over the
+# proxies the public domains to `frontend` (app) and `keycloak` (auth) over the
 # external network. nginx in `frontend` proxies /api to the backend, so the SPA
 # and API share one origin.
 #
-# All configuration lives in .env (copy it from .env.example): every service reads
-# it via env_file, so this file holds no inline environment values.
+# Most configuration lives in .env (copy it from .env.example): services read it
+# via env_file, and the keycloak/keycloak-db services read a few values through
+# ${...} substitution (docker compose reads .env for that automatically).
 
 services:
   frontend:
@@ -37,7 +38,6 @@ services:
     networks:
       - internal
     healthcheck:
-      # The aspnet base image ships no curl/wget; bash with /dev/tcp does the job.
       test:
         [
           "CMD",
@@ -61,26 +61,51 @@ services:
     networks:
       - internal
     healthcheck:
-      # $$ defers expansion to the container shell, where POSTGRES_DB is set from .env.
       test: ["CMD-SHELL", "pg_isready -U postgres -d $$POSTGRES_DB"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  pocket-id:
-    image: ghcr.io/pocket-id/pocket-id:v1
-    container_name: polyglot-pocket-id
+  keycloak:
+    build: ./keycloak
+    container_name: polyglot-keycloak
     restart: unless-stopped
-    env_file:
-      - .env
+    command: start --import-realm
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: ${KC_DB_PASSWORD}
+      KC_HOSTNAME: ${KC_HOSTNAME}
+      KC_HTTP_ENABLED: "true"
+      KC_PROXY_HEADERS: xforwarded
+      KC_HEALTH_ENABLED: "true"
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_BOOTSTRAP_ADMIN_USERNAME}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD}
+    depends_on:
+      keycloak-db:
+        condition: service_healthy
     volumes:
-      - pocket-id-data:/app/data
+      - ./keycloak/realms:/opt/keycloak/data/import:ro
     networks:
       - internal
       - pangolin
+
+  keycloak-db:
+    image: postgres:18.3
+    container_name: polyglot-keycloak-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: ${KC_DB_PASSWORD}
+    volumes:
+      - keycloak-db-data:/var/lib/postgresql
+    networks:
+      - internal
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:1411/healthz || exit 1"]
-      interval: 30s
+      test: ["CMD-SHELL", "pg_isready -U keycloak -d keycloak"]
+      interval: 10s
       timeout: 5s
       retries: 5
 
@@ -90,10 +115,6 @@ services:
     restart: unless-stopped
     env_file:
       - .env
-    # SeaweedFS reads its S3 identities from a config file rather than env vars,
-    # so generate that file from the same env keys (single source of truth in
-    # .env), then run the all-in-one server with the S3 gateway on :9000 so the
-    # Backup__S3__Endpoint stays http://seaweedfs:9000.
     entrypoint:
       - /bin/sh
       - -ec
@@ -110,7 +131,7 @@ services:
 
 volumes:
   postgres-data:
-  pocket-id-data:
+  keycloak-db-data:
   seaweedfs-data:
 
 networks:
