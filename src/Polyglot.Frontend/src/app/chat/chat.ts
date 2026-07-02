@@ -5,7 +5,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { distinctUntilChanged, map } from 'rxjs';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideArrowUp, lucideLightbulb, lucideCode, lucideBookOpen, lucideSparkles, lucidePaperclip, lucideMic, lucideChevronDown, lucideGlobe } from '@ng-icons/lucide';
+import { lucideArrowUp, lucideLightbulb, lucideCode, lucideBookOpen, lucideSparkles, lucidePaperclip, lucideChevronDown, lucideGlobe } from '@ng-icons/lucide';
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmIcon } from '@spartan-ng/helm/icon';
 import { HlmDialogService } from '@spartan-ng/helm/dialog';
@@ -75,7 +75,6 @@ const SUGGESTIONS: ChatEmptySuggestion[] = [
       lucideBookOpen,
       lucideSparkles,
       lucidePaperclip,
-      lucideMic,
       lucideChevronDown,
       lucideGlobe,
     }),
