@@ -1,5 +1,6 @@
 using Mediator;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Net.Http.Headers;
 using Polyglot.Application.Command;
 using Polyglot.Application.Dtos;
 using Polyglot.Application.Queries;
@@ -32,10 +33,12 @@ namespace Polyglot.API.Controllers
         public async Task<IActionResult> Download(Guid id, CancellationToken cancellationToken)
         {
             var result = await mediator.Send(new GetAttachmentQuery(id), cancellationToken);
-            if (result.IsSuccess)
-                return File(result.Value!.Data, result.Value.MediaType, result.Value.FileName);
+            if (!result.IsSuccess)
+                return BadRequest(result.Error);
 
-            return BadRequest(result.Error);
+            Response.Headers.CacheControl = "private, max-age=31536000, immutable";
+            var entityTag = new EntityTagHeaderValue($"\"{id}\"");
+            return File(result.Value!.Data, result.Value.MediaType, result.Value.FileName, lastModified: null, entityTag: entityTag);
         }
     }
 }
