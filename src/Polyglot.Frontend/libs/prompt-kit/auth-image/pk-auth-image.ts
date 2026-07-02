@@ -42,7 +42,7 @@ import { cn } from '../utils/cn';
       </div>
     } @else {
       <ng-content select="[loading]">
-        <div class="bg-muted h-full w-full animate-pulse"></div>
+        <div class="bg-muted aspect-square w-64 max-w-full animate-pulse"></div>
       </ng-content>
     }
   `,
