@@ -23,26 +23,8 @@ Polyglot talks to any model through OpenRouter, meters usage in credits, and let
 - Credit-based billing (Stripe) instead of raw token costs
 - Tool calling: JavaScript runner, image generation, and remote MCP servers
 - Keycloak (OIDC) authentication
-- Angular 21 UI built on [ngx-prompt-kit](https://github.com/PianoNic/ngx-prompt-kit)
-
-## Quick start
-
-```bash
-docker compose -f compose.dev.yml up -d      # Postgres + Keycloak
-dotnet run --project src/Polyglot.API         # backend  -> :5246
-cd src/Polyglot.Frontend && bun run start     # frontend -> :4200
-```
-
-Add your OpenRouter key first (in `src/Polyglot.API`):
-
-```bash
-dotnet user-secrets set "OpenRouter:ApiKey" "sk-or-..."
-```
-
-Full setup (secrets, Keycloak, migrations): see [docs/dev_setup.md](docs/dev_setup.md).
+- Angular 21 UI
 
 ## License
 
 Proprietary. See [LICENSE](LICENSE).
-
-<p align="center">Made by <a href="https://github.com/PianoNic">PianoNic</a></p>
