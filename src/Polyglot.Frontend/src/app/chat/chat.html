@@ -88,7 +88,14 @@
                             [alt]="a.fileName"
                             imgClass="max-h-80 max-w-full object-contain"
                             class="rounded-md border"
-                          />
+                          >
+                            <div
+                              loading
+                              class="flex min-h-40 w-full items-center justify-center"
+                            >
+                              <hlm-spinner class="text-muted-foreground" />
+                            </div>
+                          </pk-auth-image>
                         </button>
                       } @else {
                         <pk-attachment-chip

@@ -17,8 +17,9 @@ import { cn } from '../utils/cn';
 /**
  * Renders an image from an auth-protected endpoint. Fetches `url` via
  * `HttpClient` (so your auth interceptor attaches the token), shows the blob as
- * an object URL, and revokes it on change/destroy. Shows a skeleton while
- * loading and a fallback (project `[error]` content to customise) on failure.
+ * an object URL, and revokes it on change/destroy. While loading it shows a
+ * skeleton by default (project `[loading]` content to customise, e.g. a
+ * spinner), and on failure a fallback (project `[error]` content to customise).
  *
  * Requires `provideHttpClient()` in the app. SSR-safe: it only fetches in the
  * browser. The endpoint URL is consumer-supplied, so the component stays
@@ -40,7 +41,9 @@ import { cn } from '../utils/cn';
         <ng-content select="[error]">Failed to load</ng-content>
       </div>
     } @else {
-      <div class="bg-muted h-full w-full animate-pulse"></div>
+      <ng-content select="[loading]">
+        <div class="bg-muted h-full w-full animate-pulse"></div>
+      </ng-content>
     }
   `,
 })

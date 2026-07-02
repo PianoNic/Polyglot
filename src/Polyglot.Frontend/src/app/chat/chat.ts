@@ -9,6 +9,7 @@ import { lucideArrowUp, lucideLightbulb, lucideCode, lucideBookOpen, lucideSpark
 import { HlmButton } from '@spartan-ng/helm/button';
 import { HlmIcon } from '@spartan-ng/helm/icon';
 import { HlmDialogService } from '@spartan-ng/helm/dialog';
+import { HlmSpinnerImports } from '@spartan-ng/helm/spinner';
 import { toast } from '@spartan-ng/brain/sonner';
 import { ImagePreview } from '../shared/components/image-preview/image-preview';
 import { MessageRole } from '../api/model/messageRole';
@@ -50,6 +51,7 @@ const SUGGESTIONS: ChatEmptySuggestion[] = [
     NgIcon,
     HlmButton,
     HlmIcon,
+    HlmSpinnerImports,
     PkAuthImageImports,
     PkChatContainerImports,
     PkFileUploadImports,
